@@ -40,7 +40,7 @@ const ACTION_EVIDENCE_REQUIREMENTS: Partial<Record<TeachingAction, EvidenceRequi
       fallback: 'State that no schedule evidence was found and plan from learner state only.',
     },
     {
-      anyOf: ['memory', 'control_fact', 'problem_attempt'],
+      anyOf: ['memory', 'conversation', 'control_fact', 'problem_attempt'],
       reason:
         'A review plan needs learner-state evidence, such as mastered concepts, weak points, or wrong attempts.',
       fallback:
@@ -62,7 +62,7 @@ const ACTION_EVIDENCE_REQUIREMENTS: Partial<Record<TeachingAction, EvidenceRequi
       fallback: 'State that the problem bank is thin and mark questions as generated diagnostics.',
     },
     {
-      anyOf: ['problem_attempt', 'memory', 'control_fact'],
+      anyOf: ['problem_attempt', 'memory', 'conversation', 'control_fact'],
       reason:
         'Question selection must explain which weak point, wrong attempt, or learner-state signal triggered it.',
       fallback: 'State that no prior attempt evidence was found and use a diagnostic ordering.',

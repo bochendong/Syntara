@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { LanguageModel } from 'ai';
+import { Output } from 'ai';
+import type { LanguageModel, UserModelMessage } from 'ai';
+import { z } from 'zod';
 import { Prisma, type PrismaClient } from '@/lib/server/generated-prisma';
 import type { NotebookProblemImportDraft, NotebookProblemPublicContent } from '@/lib/problem-bank';
 import {
@@ -12,7 +14,7 @@ import {
   createOwnedNotebook,
   refreshCourseSummaryFields,
 } from '@/lib/server/repositories/notebook-repository';
-import { toPrismaNullableJson } from '@/lib/server/prisma-json';
+import { replaceLoneUnicodeSurrogates, toPrismaNullableJson } from '@/lib/server/prisma-json';
 import { extractProblemDraftsFromText } from '@/features/problems/server/import';
 import {
   createCourseProblemsFromDrafts,
@@ -26,6 +28,8 @@ import {
 import {
   buildSourcePacket,
   classifySourceDocumentType,
+  type SourceCheatSheet,
+  type SourceAnswerContract,
   type SourcePacket,
   type SourcePacketNotebookSection,
   type SourceStructuredNotes,
@@ -36,12 +40,18 @@ import { routeLayeredMemoryWriteCandidates } from '@/features/memory/server/writ
 import type { MemoryWriteCandidate } from '@/lib/server/memory-write-router';
 import { callLLM } from '@/lib/ai/llm';
 import { generateImage, IMAGE_PROVIDERS } from '@/lib/media/image-providers';
-import type { ImageGenerationResult, ImageProviderId } from '@/lib/media/types';
+import type {
+  ImageGenerationResult,
+  ImageProviderId,
+  StudyCoverOverlaySpec,
+} from '@/lib/media/types';
+import { compositeStudyCoverBuffer } from '@/lib/media/study-cover-overlay';
 import {
   getServerImageProviders,
   resolveImageApiKey,
   resolveImageBaseUrl,
 } from '@/lib/server/provider-config';
+import { proxyFetch } from '@/lib/server/proxy-fetch';
 
 export type SourceUploadKind =
   | 'pdf'
@@ -72,6 +82,7 @@ export type SourceUploadIngestionResult = {
     processedChars: number;
     truncated: boolean;
     courseCode: string | null;
+    aiSynthesisInput: 'openai_file_id' | 'extracted_text' | 'not_used';
   };
   classification: {
     documentType: SourcePacket['classification']['documentType'];
@@ -170,6 +181,8 @@ type IngestCourseSourceUploadArgs = {
   language?: 'zh-CN' | 'en-US';
   usageProfile?: SourceUsageProfile;
   model?: LanguageModel;
+  modelProviderId?: string | null;
+  generateNotebookCover?: boolean;
 };
 
 const MAX_SOURCE_TEXT_CHARS = 180_000;
@@ -197,7 +210,7 @@ const KNOWLEDGE_GRAPH_CONCEPT_STOPWORDS = new Set([
 ]);
 
 function compact(input: string | null | undefined, maxChars: number): string {
-  const text = String(input || '')
+  const text = replaceLoneUnicodeSurrogates(String(input || ''))
     .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -255,6 +268,17 @@ function isDocumentTitleLine(line: string): boolean {
 }
 
 function inferDocumentTitle(text: string): string | null {
+  // Some PDF parsers flatten the whole first page into one line. Preserve the
+  // common journal shape "Article <title> <First Author> <affiliation>" before
+  // falling back to line-based title detection.
+  const firstPageText = collapseSpaces(text.slice(0, 4_000));
+  const inlineArticleTitle = firstPageText.match(
+    /\bArticle\s+(.{8,180}?)\s+(?=[A-Z][A-Za-z'’.-]+\s+[A-Z][A-Za-z'’.-]+\s+\d)/,
+  )?.[1];
+  if (inlineArticleTitle && isDocumentTitleLine(inlineArticleTitle)) {
+    return inlineArticleTitle;
+  }
+
   const lines = text
     .split('\n')
     .slice(0, 90)
@@ -444,7 +468,7 @@ function extractTopic(args: {
   )?.title;
   const draftTag = args.drafts.flatMap((draft) => draft.tags)[0];
   return cleanTitle(
-    heading || inferDocumentTitle(args.text) || artifactTitle || draftTag || args.sourceTitle,
+    heading || inferDocumentTitle(args.text) || args.sourceTitle || artifactTitle || draftTag,
   );
 }
 
@@ -556,6 +580,7 @@ async function appendMarkdownSections(args: {
   prisma: PrismaClient;
   courseId: string;
   notebookId: string;
+  sourceHash: string;
   sections: Array<{
     title: string;
     markdown: string;
@@ -564,6 +589,18 @@ async function appendMarkdownSections(args: {
   }>;
 }): Promise<Array<{ id: string; title: string; summary: string | null }>> {
   if (args.sections.length === 0) return [];
+  const existingSections = await args.prisma.markdownNotebookSection.findMany({
+    where: { notebookId: args.notebookId },
+    select: { id: true, title: true, summary: true, sourceMeta: true },
+    orderBy: { order: 'asc' },
+  });
+  const existingSourceSections = existingSections.filter((section) => {
+    const meta = asRecord(section.sourceMeta);
+    return meta?.sourceHash === args.sourceHash;
+  });
+  if (existingSourceSections.length > 0) {
+    return existingSourceSections.map(({ id, title, summary }) => ({ id, title, summary }));
+  }
   const maxOrder = await args.prisma.markdownNotebookSection.aggregate({
     where: { notebookId: args.notebookId },
     _max: { order: true },
@@ -637,74 +674,213 @@ function resolveSourceCoverImageProvider(): {
   return null;
 }
 
-function sourceCoverPrompt(args: {
-  course: CourseForSourceCover;
+function sourceCoverComposition(args: {
+  course: CourseForSourceCover | null;
   sourceTitle: string;
   topic: string;
   sourcePacket: SourcePacket;
-}): string {
+  courseLabelOverride?: string | null;
+  focusLabelsOverride?: string[];
+}): { prompt: string; coverSpec: StudyCoverOverlaySpec } {
   const usageProfile = args.sourcePacket.classification.usageProfile;
-  const notebookKnowledge = args.sourcePacket.structuredNotes?.notebookKnowledge;
-  const courseControl = args.sourcePacket.structuredNotes?.courseControl;
-  const sectionLines = (notebookKnowledge?.sections || args.sourcePacket.notebookSections)
-    .slice(0, 5)
-    .map((section, index) => {
-      const title = 'title' in section ? section.title : `要点 ${index + 1}`;
-      const summary = 'summary' in section ? section.summary : '';
-      return `${index + 1}. ${compact(`${title}：${summary}`, 120)}`;
-    });
-  const conceptLines = (notebookKnowledge?.concepts || [])
-    .slice(0, 8)
-    .map((item) => `${item.label}：${compact(item.detail, 80)}`);
-  const methodLines = (notebookKnowledge?.methods || [])
-    .slice(0, 6)
-    .map((item) => `${item.label}：${compact(item.detail, 80)}`);
-  const learningPathLines = (notebookKnowledge?.learningPath || [])
-    .slice(0, 5)
-    .map((item, index) => `${index + 1}. ${compact(item, 100)}`);
-  const takeawayLines = (notebookKnowledge?.keyTakeaways || [])
-    .slice(0, 5)
-    .map((item) => compact(item, 100));
-  const boundaryLines = (courseControl?.boundaryWarnings || [])
-    .slice(0, 4)
-    .map((item) => compact(item, 90));
-  const profileInstruction =
+  const cheatSheet = args.sourcePacket.cheatSheet;
+  const profileLabels =
     usageProfile === 'research'
-      ? '科研论文封面：突出研究问题、方法 pipeline、实验指标、证据边界和可检索关键词。'
+      ? { route: '研究路线', side: '核心概念', footer: '证据边界' }
       : usageProfile === 'daily_use'
-        ? '日常资料封面：突出关键信息、用途、后续动作、时间线/清单和检索入口。'
-        : '大学课程封面：突出学习目标、核心概念、课堂讲解顺序、易错边界和复习入口。';
+        ? { route: '信息路线', side: '关键信息', footer: '下一步' }
+        : { route: '方法路线', side: '关键边界', footer: '复习提醒' };
+  const requestedFocus = (args.focusLabelsOverride || [])
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const courseLabel = args.courseLabelOverride?.trim() || '';
+  const footerText =
+    usageProfile === 'research'
+      ? '先分清研究主张、方法、证据与适用边界。'
+      : usageProfile === 'daily_use'
+        ? '先确认关键信息，再安排下一步动作。'
+        : '先检查适用条件，再选择方法，最后写出结论边界。';
+  const coverSpec: StudyCoverOverlaySpec = {
+    title: args.topic.trim(),
+    courseLabel,
+    routeTitle: profileLabels.route,
+    routeItems: requestedFocus,
+    sideTitle: profileLabels.side,
+    sideItems: [],
+    footerTitle: profileLabels.footer,
+    footerText,
+    definition: cheatSheet?.definition,
+    methods: cheatSheet?.methods,
+    keyPoints: cheatSheet?.keyPoints,
+    learningSteps: cheatSheet?.learningSteps,
+    keywords: cheatSheet?.keywords,
+  };
+  const prompt = [
+    '生成一张 A4 竖版中文学习 Cheat Sheet，比例接近 1:1.414。',
+    '这是一页可以直接复习的完整学习资料，不是封面、广告海报，也不是等待后续叠字的空白底图。',
+    '根据内容本身决定信息层级和版面密度，不要套用固定学科模板；重要定义、方法、条件、步骤和边界应当一眼可找。',
+    '视觉采用干净白纸、清晰中文手写笔记感、柔和荧光笔分区、细线框、少量相关小图标；保持足够留白，但不能因留白而丢失关键内容。',
+    '正文以简体中文为主，必要的英文术语和公式可保留。所有可见文字必须有意义、清楚可读；不得生成乱码、伪汉字、无关公式、品牌 logo 或水印。',
+    '严格忠于下方资料，不增加资料没有支持的结论；若信息较多，优先完整表达核心知识和证据边界，而不是装饰。',
+    '',
+    '需要呈现的学习内容：',
+    JSON.stringify(
+      {
+        title: coverSpec.title,
+        courseLabel: coverSpec.courseLabel || null,
+        requestedFocus,
+        definition: cheatSheet?.definition || null,
+        methods: cheatSheet?.methods || [],
+        keyPoints: cheatSheet?.keyPoints || [],
+        learningSteps: cheatSheet?.learningSteps || [],
+        keywords: cheatSheet?.keywords || [],
+      },
+      null,
+      2,
+    ),
+  ].join('\n');
+  return { prompt, coverSpec };
+}
 
-  return compact(
-    [
-      '生成一张 A4 竖版中文学习笔记封面图，比例接近 1:1.414。',
-      '视觉风格参考：干净白纸、手写中文标题、柔和荧光笔分区、细线框、中央概念流程图、少量小图标、底部对比表格或小结便利贴。',
-      '目标：学生一眼看懂这份资料在讲什么，而不是做广告海报。',
-      '文字必须以简体中文为主，可以保留必要英文术语；不要写长段英文；不要堆叠难以阅读的小字。',
-      '图片结构：顶部大标题；左侧或中央放一张核心机制/知识路线图；右侧放 3-5 个关键因素或边界；底部放一个对比表格或总结卡片。',
-      profileInstruction,
-      '',
-      `课程：${args.course.courseCode || args.course.name}`,
-      `资料标题：${args.sourceTitle}`,
-      `封面标题：${args.topic}`,
-      `资料类型：${args.sourcePacket.classification.documentType}`,
-      '',
-      learningPathLines.length
-        ? `学习脉络：\n${learningPathLines.join('\n')}`
-        : sectionLines.length
-          ? `核心脉络：\n${sectionLines.join('\n')}`
-          : '',
-      takeawayLines.length ? `可复述要点：\n${takeawayLines.join('\n')}` : '',
-      conceptLines.length ? `核心概念：\n${conceptLines.join('\n')}` : '',
-      methodLines.length ? `方法/工具：\n${methodLines.join('\n')}` : '',
-      boundaryLines.length ? `边界提醒：\n${boundaryLines.join('\n')}` : '',
-      '',
-      '画面要求：信息清楚、层次分明、留白足够、适合做 notebook cover；不要深色背景、不要照片写实、不要品牌 logo、不要随机公式、不要虚构论文结论。',
-    ]
-      .filter(Boolean)
-      .join('\n'),
-    3800,
-  );
+export function sourceCoverPrompt(args: Parameters<typeof sourceCoverComposition>[0]): string {
+  return sourceCoverComposition(args).prompt;
+}
+
+export type SourceCoverPromptPreview = {
+  source: {
+    title: string;
+    hash: string;
+    openaiFileId: string | null;
+    aiSynthesisInput: SourceUploadIngestionResult['source']['aiSynthesisInput'];
+  };
+  classification: {
+    documentType: SourcePacket['classification']['documentType'];
+    usageProfile: SourceUsageProfile;
+    topic: string;
+  };
+  prompt: string;
+  coverSpec: StudyCoverOverlaySpec;
+  summary: string;
+  sections: Array<{ title: string; summary: string }>;
+};
+
+export async function prepareSourceCoverPrompt(args: {
+  sourceTitle: string;
+  sourceKind: SourceUploadKind;
+  sourceFileMime?: string | null;
+  text: string;
+  rawFileHash?: string | null;
+  openaiFileId?: string | null;
+  parser?: string | null;
+  pageCount?: number | null;
+  slideCount?: number | null;
+  language?: 'zh-CN' | 'en-US';
+  usageProfile?: SourceUsageProfile;
+  coverTitle?: string | null;
+  coverCourseLabel?: string | null;
+  coverFocus?: string | null;
+  model?: LanguageModel;
+  modelProviderId?: string | null;
+}): Promise<SourceCoverPromptPreview> {
+  const rawText = args.text.trim();
+  if (!rawText) throw new Error('Uploaded source text is empty');
+  const processedText = compact(rawText, MAX_SOURCE_TEXT_CHARS);
+  const sourceHash =
+    args.rawFileHash?.trim() ||
+    sha256([args.sourceTitle, args.sourceKind, processedText].join('\n\n'));
+  const problemSignals = problemSignalCount(processedText);
+  const allQuestionUpload = args.sourceKind === 'problem_bank';
+  const topic = extractTopic({
+    sourceTitle: args.sourceTitle,
+    text: processedText,
+    artifacts: [],
+    drafts: [],
+  });
+  let sourcePacket = buildSourcePacket({
+    sourceTitle: args.sourceTitle,
+    sourceKind: args.sourceKind,
+    sourceFileMime: args.sourceFileMime,
+    sourceHash,
+    rawFileHash: args.rawFileHash,
+    openaiFileId: args.openaiFileId,
+    parser: args.parser,
+    pageCount: args.pageCount,
+    slideCount: args.slideCount,
+    courseCode: null,
+    topic,
+    text: processedText,
+    allQuestionUpload,
+    problemExtractionEligible: false,
+    problemSignalCount: problemSignals,
+    usageProfile: args.usageProfile,
+    artifacts: [],
+    drafts: [],
+  });
+  const synthesis = await synthesizeSourceCheatSheetWithModel({
+    model: args.model,
+    modelProviderId: args.modelProviderId,
+    sourceTitle: args.sourceTitle,
+    sourceKind: args.sourceKind,
+    sourceFileMime: args.sourceFileMime,
+    openaiFileId: args.openaiFileId,
+    text: processedText,
+    language: args.language || 'zh-CN',
+  });
+  const cheatSheet = synthesis.cheatSheet;
+  if (cheatSheet) {
+    sourcePacket = {
+      ...sourcePacket,
+      cheatSheet,
+      graph: {
+        ...sourcePacket.graph,
+        concepts: cheatSheet.keyPoints.map((item) => item.title),
+        methods: cheatSheet.methods.map((item) => item.name),
+      },
+    };
+  }
+  const sections = sourcePacket.notebookSections.slice(0, 5).map((section, index) => ({
+    id: `cover-preview-${sourceHash.slice(0, 12)}-${index + 1}`,
+    title: section.title,
+    summary: section.summary,
+  }));
+  const structuredNotes = buildStructuredSourceNotes({
+    sourceTitle: args.sourceTitle,
+    topic,
+    sourcePacket,
+    sections,
+    templateTitles: [],
+  });
+  sourcePacket = { ...sourcePacket, structuredNotes };
+  const coverTitle = args.coverTitle?.trim() || topic;
+  const focusLabels = String(args.coverFocus || '')
+    .split(/[\n,，;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const coverComposition = sourceCoverComposition({
+    course: null,
+    sourceTitle: args.sourceTitle,
+    topic: coverTitle,
+    sourcePacket,
+    courseLabelOverride: args.coverCourseLabel,
+    focusLabelsOverride: focusLabels,
+  });
+  return {
+    source: {
+      title: args.sourceTitle,
+      hash: sourceHash,
+      openaiFileId: args.openaiFileId || null,
+      aiSynthesisInput: synthesis.inputMode,
+    },
+    classification: {
+      documentType: sourcePacket.classification.documentType,
+      usageProfile: sourcePacket.classification.usageProfile,
+      topic: coverTitle,
+    },
+    prompt: coverComposition.prompt,
+    coverSpec: coverComposition.coverSpec,
+    summary: structuredNotes.notebookKnowledge.summary,
+    sections: sections.map(({ title, summary }) => ({ title, summary: summary || '' })),
+  };
 }
 
 function mimeExtension(mime: string | null): 'png' | 'jpg' | 'webp' {
@@ -808,12 +984,13 @@ async function generateNotebookCoverForSource(args: {
     };
   }
 
-  const prompt = sourceCoverPrompt({
+  const coverComposition = sourceCoverComposition({
     course: args.course,
     sourceTitle: args.sourceTitle,
     topic: args.topic,
     sourcePacket: args.sourcePacket,
   });
+  const prompt = coverComposition.prompt;
 
   try {
     const image = await generateImage(
@@ -822,24 +999,32 @@ async function generateNotebookCoverForSource(args: {
         apiKey: provider.apiKey,
         baseUrl: provider.baseUrl,
         model: provider.model,
+        fetch: proxyFetch as typeof fetch,
       },
       {
         prompt,
         negativePrompt:
-          '英文长文、密密麻麻的小字、写实照片、广告海报、黑色背景、随机公式、错误化学结构、虚构实验结论、logo、水印',
+          '任何文字、字母、汉字、数字、公式、伪造汉字、乱码、写实照片、广告海报、黑色背景、logo、水印',
         width: SOURCE_COVER_WIDTH,
         height: SOURCE_COVER_HEIGHT,
-        style: 'clean handwritten Chinese A4 study poster',
+        style: 'text-free pastel A4 study notebook background',
+        quality: 'medium',
       },
     );
     const rendered = await imageResultBuffer(image);
+    const composedBuffer = await compositeStudyCoverBuffer({
+      source: rendered.buffer,
+      spec: coverComposition.coverSpec,
+      width: SOURCE_COVER_WIDTH,
+      height: SOURCE_COVER_HEIGHT,
+    });
     const courseSegment = safePathSegment(args.course.id, 'course');
     const notebookSegment = safePathSegment(args.notebookId, 'notebook');
     const hashSegment = safePathSegment(args.sourceHash.slice(0, 24), 'source');
-    const fileName = `${hashSegment}.${rendered.extension}`;
+    const fileName = `${hashSegment}.png`;
     const outputDir = path.join(SOURCE_COVER_PUBLIC_ROOT, courseSegment, notebookSegment);
     await fs.mkdir(outputDir, { recursive: true });
-    await fs.writeFile(path.join(outputDir, fileName), rendered.buffer);
+    await fs.writeFile(path.join(outputDir, fileName), composedBuffer);
     const imagePath = `${SOURCE_COVER_PUBLIC_PREFIX}/${courseSegment}/${notebookSegment}/${fileName}`;
 
     await args.prisma.notebook.updateMany({
@@ -1028,110 +1213,256 @@ function buildSynthesisSourceSample(text: string): string {
     .join('\n\n---\n\n');
 }
 
-function extractJsonObject(text: string): unknown | null {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim();
-  const candidate = fenced || trimmed;
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    const start = candidate.indexOf('{');
-    const end = candidate.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(candidate.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
 }
 
-function stringArray(value: unknown, maxItems: number): string[] {
-  return Array.isArray(value)
-    ? value
-        .map((item) => (typeof item === 'string' ? cleanTitle(item) : ''))
-        .filter((item) => item.length >= 2)
-        .slice(0, maxItems)
-    : [];
-}
+const sourceAnswerContractCategorySchema = z.enum([
+  'solution_format',
+  'method_choice',
+  'notation',
+  'proof_style',
+  'grading',
+  'forbidden_move',
+  'private_setting',
+]);
 
-function markdownContainsTable(markdown: string): boolean {
-  return /\|[^\n]+\|\n\|[\s:|-]+\|/m.test(markdown);
-}
+const sourceAnswerContractSchema = z.object({
+  shouldPersist: z.boolean(),
+  title: z.string(),
+  courseCode: z.string().nullable(),
+  summary: z.string(),
+  rules: z.array(
+    z.object({
+      category: sourceAnswerContractCategorySchema,
+      rule: z.string(),
+      when: z.string(),
+      example: z.string(),
+      evidence: z.string(),
+    }),
+  ),
+});
 
-function markdownHasRhythmBlock(markdown: string): boolean {
-  return /(?:^|\n)(?:>\s+|- |\d+\. |###\s+)/.test(markdown);
-}
+const sourceNotebookCommonSchema = z.object({
+  topic: z.string(),
+  publicMemoryText: z.string(),
+  privateUpdatePolicy: z.string(),
+  sections: z.array(
+    z.object({
+      key: z.string(),
+      title: z.string(),
+      summary: z.string(),
+      markdown: z.string(),
+    }),
+  ),
+  graph: z.object({
+    concepts: z.array(z.string()),
+    methods: z.array(z.string()),
+  }),
+  answerContract: sourceAnswerContractSchema,
+});
 
-function enrichSynthesizedMarkdown(args: {
-  markdown: string;
-  summary: string;
-  sourceTitle: string;
-  usageProfile: SourceUsageProfile;
-}): string {
-  if (markdownHasRhythmBlock(args.markdown)) return args.markdown;
-  const bullets =
-    args.usageProfile === 'daily_use'
-      ? [
-          '- 这份资料是什么。',
-          '- 哪些信息之后需要快速查到。',
-          '- 有没有明确待办、决定、截止时间或后续追踪。',
-        ]
-      : args.usageProfile === 'university_course'
-        ? [
-            '- 它属于课程里的哪一个单元。',
-            '- 学生需要掌握哪些概念、方法或模板。',
-            '- 这份资料怎样转化成讲解、练习、复习或考试准备。',
-          ]
-        : [
-            '- 这段材料要解决的核心问题是什么。',
-            '- 作者用了什么表示、方法或评估接口。',
-            '- 哪些结论是论文明确支持的，哪些只是边界或局限。',
-          ];
-  const learningBlock = [`> 阅读抓手：${args.summary}`, '', '### 先抓这三件事', ...bullets].join(
-    '\n',
-  );
-  const [firstParagraph, ...rest] = args.markdown.split(/\n{2,}/);
-  return [firstParagraph, learningBlock, ...rest].filter(Boolean).join('\n\n');
-}
+const sourceCourseNotebookGuideSchema = z.object({
+  lectureFocus: z.string(),
+  definitions: z.array(
+    z.object({
+      term: z.string(),
+      statement: z.string(),
+      notation: z.string(),
+      conditions: z.array(z.string()),
+      sourceRef: z.string(),
+    }),
+  ),
+  knowledgeMap: z.array(
+    z.object({
+      from: z.string(),
+      relation: z.string(),
+      to: z.string(),
+    }),
+  ),
+  problemSolving: z.object({
+    guidingIdea: z.string(),
+    methodSelection: z.array(
+      z.object({
+        when: z.string(),
+        idea: z.string(),
+        method: z.string(),
+        why: z.string(),
+      }),
+    ),
+    solutionFormat: z.array(
+      z.object({
+        stage: z.string(),
+        purpose: z.string(),
+        writeLike: z.string(),
+      }),
+    ),
+    checks: z.array(z.string()),
+  }),
+  representativeProblems: z.array(
+    z.object({
+      title: z.string(),
+      represents: z.string(),
+      trigger: z.string(),
+      solutionOutline: z.array(z.string()),
+      sourceRef: z.string(),
+    }),
+  ),
+  commonMistakes: z.array(
+    z.object({
+      mistake: z.string(),
+      correction: z.string(),
+    }),
+  ),
+  quickLookup: z.array(
+    z.object({
+      question: z.string(),
+      answer: z.string(),
+      sourceRef: z.string(),
+    }),
+  ),
+  noteDesign: z.object({
+    notePurpose: z.string(),
+    inclusionRules: z.array(z.string()),
+    omissionRules: z.array(z.string()),
+    howToUse: z.array(z.string()),
+  }),
+});
+
+const sourceResearchNotebookGuideSchema = z.object({
+  researchQuestion: z.string(),
+  coreClaims: z.array(
+    z.object({
+      claim: z.string(),
+      evidence: z.string(),
+      boundary: z.string(),
+      sourceRef: z.string(),
+    }),
+  ),
+  methodPipeline: z.array(
+    z.object({
+      stage: z.string(),
+      input: z.string(),
+      action: z.string(),
+      output: z.string(),
+    }),
+  ),
+  evidenceMap: z.array(
+    z.object({
+      experimentOrSource: z.string(),
+      metric: z.string(),
+      result: z.string(),
+      supports: z.string(),
+      boundary: z.string(),
+    }),
+  ),
+  limitations: z.array(z.string()),
+  reproducibility: z.array(
+    z.object({
+      item: z.string(),
+      detail: z.string(),
+      status: z.enum(['explicit', 'partial', 'missing']),
+    }),
+  ),
+  retrievalKeywords: z.array(z.string()),
+  quickLookup: z.array(
+    z.object({
+      question: z.string(),
+      answer: z.string(),
+      sourceRef: z.string(),
+    }),
+  ),
+  noteDesign: z.object({
+    notePurpose: z.string(),
+    inclusionRules: z.array(z.string()),
+    omissionRules: z.array(z.string()),
+    howToUse: z.array(z.string()),
+  }),
+});
+
+const sourceDailyNotebookGuideSchema = z.object({
+  essentialInformation: z.array(z.string()),
+  actions: z.array(z.string()),
+  timeline: z.array(z.string()),
+  quickLookup: z.array(
+    z.object({ question: z.string(), answer: z.string(), sourceRef: z.string() }),
+  ),
+  noteDesign: z.object({
+    notePurpose: z.string(),
+    inclusionRules: z.array(z.string()),
+    omissionRules: z.array(z.string()),
+    howToUse: z.array(z.string()),
+  }),
+});
+
+const sourceCourseNotebookSynthesisSchema = sourceNotebookCommonSchema.extend({
+  courseGuide: sourceCourseNotebookGuideSchema,
+});
+
+const sourceResearchNotebookSynthesisSchema = sourceNotebookCommonSchema.extend({
+  researchGuide: sourceResearchNotebookGuideSchema,
+});
+
+const sourceDailyNotebookSynthesisSchema = sourceNotebookCommonSchema.extend({
+  dailyGuide: sourceDailyNotebookGuideSchema,
+});
+
+const sourceNotebookRouteSchema = z.object({
+  usageProfile: z.enum(['university_course', 'research', 'daily_use']),
+  confidence: z.number(),
+  reasons: z.array(z.string()),
+  sourceSignals: z.array(z.string()),
+});
+
+export type SourceNotebookRouteDecision = z.infer<typeof sourceNotebookRouteSchema> & {
+  source: 'ai' | 'user_override';
+};
+
+export type SourceCourseNotebookGuide = z.infer<typeof sourceCourseNotebookGuideSchema>;
+export type SourceResearchNotebookGuide = z.infer<typeof sourceResearchNotebookGuideSchema>;
+export type SourceDailyNotebookGuide = z.infer<typeof sourceDailyNotebookGuideSchema>;
+export type SourceNotebookStudyGuide =
+  | { kind: 'course'; content: SourceCourseNotebookGuide }
+  | { kind: 'research'; content: SourceResearchNotebookGuide }
+  | { kind: 'daily'; content: SourceDailyNotebookGuide };
+
+const sourceCheatSheetSchema = z.object({
+  definition: z.string(),
+  methods: z.array(
+    z.object({
+      name: z.string(),
+      trigger: z.string(),
+      rule: z.string(),
+      boundary: z.string(),
+    }),
+  ),
+  keyPoints: z.array(z.object({ title: z.string(), detail: z.string() })),
+  learningSteps: z.array(z.string()),
+  keywords: z.array(z.string()),
+});
 
 function normalizeSynthesizedSection(args: {
   value: unknown;
   index: number;
   sourceTitle: string;
   sourceHash: string;
-  usageProfile: SourceUsageProfile;
-}): SourcePacketNotebookSection | null {
+}): SourcePacketNotebookSection {
   const record = asRecord(args.value);
-  if (!record) return null;
-  const key = typeof record.key === 'string' ? cleanTitle(record.key).toLowerCase() : '';
-  const title = typeof record.title === 'string' ? cleanTitle(record.title) : '';
-  const summary = typeof record.summary === 'string' ? compact(record.summary, 220) : '';
-  const rawMarkdown = typeof record.markdown === 'string' ? compact(record.markdown, 7_500) : '';
-  const markdown = enrichSynthesizedMarkdown({
-    markdown: rawMarkdown,
-    summary,
-    sourceTitle: args.sourceTitle,
-    usageProfile: args.usageProfile,
-  });
-  if (!title || !summary || markdown.length < 160 || !/[\u3400-\u9fff]/.test(markdown)) {
-    return null;
+  if (!record) throw new Error(`sections[${args.index}] must be an object`);
+  const key = typeof record.key === 'string' ? record.key.trim() : '';
+  const title = typeof record.title === 'string' ? record.title.trim() : '';
+  const summary = typeof record.summary === 'string' ? record.summary.trim() : '';
+  const markdown = typeof record.markdown === 'string' ? record.markdown.trim() : '';
+  if (!key || !title || !summary || !markdown) {
+    throw new Error(`sections[${args.index}] is missing key, title, summary, or markdown`);
   }
   return {
-    key: key || `synthesized-${args.index + 1}`,
+    key,
     title,
     summary,
-    markdown: markdownContainsTable(markdown)
-      ? markdown
-      : `${markdown}\n\n| 项目 | 内容 |\n| --- | --- |\n| 来源 | ${args.sourceTitle} |\n| 入库状态 | 已整理为中文课程笔记 |\n`,
+    markdown,
     sourceRefs: [
       {
         sourceHash: args.sourceHash,
@@ -1139,6 +1470,58 @@ function normalizeSynthesizedSection(args: {
         note: `synthesized-note-${args.index + 1}`,
       },
     ],
+  };
+}
+
+function normalizeSynthesizedAnswerContract(value: unknown): SourceAnswerContract {
+  const record = asRecord(value);
+  if (!record) throw new Error('answerContract must be an object');
+  const allowedCategories = new Set([
+    'solution_format',
+    'method_choice',
+    'notation',
+    'proof_style',
+    'grading',
+    'forbidden_move',
+    'private_setting',
+  ]);
+  if (!Array.isArray(record.rules)) throw new Error('answerContract.rules must be an array');
+  const rules = record.rules.map((value, index) => {
+    const rule = asRecord(value);
+    if (!rule) throw new Error(`answerContract.rules[${index}] must be an object`);
+    if (typeof rule.category !== 'string' || !allowedCategories.has(rule.category)) {
+      throw new Error(`answerContract.rules[${index}].category is invalid`);
+    }
+    const text = typeof rule.rule === 'string' ? rule.rule.trim() : '';
+    const when = typeof rule.when === 'string' ? rule.when.trim() : '';
+    const example = typeof rule.example === 'string' ? rule.example.trim() : '';
+    const evidence = typeof rule.evidence === 'string' ? rule.evidence.trim() : '';
+    if (!text || !evidence) {
+      throw new Error(`answerContract.rules[${index}] is missing rule or evidence`);
+    }
+    return {
+      category: rule.category as SourceAnswerContract['rules'][number]['category'],
+      rule: text,
+      when,
+      example,
+      evidence,
+    };
+  });
+  if (typeof record.shouldPersist !== 'boolean') {
+    throw new Error('answerContract.shouldPersist must be a boolean');
+  }
+  if (typeof record.title !== 'string' || typeof record.summary !== 'string') {
+    throw new Error('answerContract.title and summary must be strings');
+  }
+  if (record.courseCode !== null && typeof record.courseCode !== 'string') {
+    throw new Error('answerContract.courseCode must be a string or null');
+  }
+  return {
+    shouldPersist: record.shouldPersist,
+    title: record.title.trim(),
+    courseCode: typeof record.courseCode === 'string' ? record.courseCode.trim() : null,
+    summary: record.summary.trim(),
+    rules,
   };
 }
 
@@ -1155,144 +1538,642 @@ function synthesisSectionPlan(profile: SourceUsageProfile): string {
   if (profile === 'university_course') {
     return '课程位置与学习目标、核心概念与先修关系、课堂讲解脉络、例题/作业/考试接口、复习清单与易错点';
   }
-  return '资料总览、背景与问题、方法框架、实验与结论、局限与课程关联';
+  return '资料总览、背景与问题、方法框架、实验与结论、局限与证据边界';
 }
 
 function synthesisMemoryRequirement(profile: SourceUsageProfile): string {
   if (profile === 'daily_use') {
-    return 'publicMemoryText 要是 500-900 中文字的日常资料索引：资料是什么、关键日期/人物/对象、待办与追踪入口；不要写成课程知识或科研综述。privateUpdatePolicy 要说明日常资料默认不自动写课程公共记忆；涉及个人偏好、长期计划或待办时，应进入私有/个人上下文，必要时等待用户确认。';
+    return 'publicMemoryText 要写成与资料信息量相称的日常资料索引：资料是什么、关键日期/人物/对象、待办与追踪入口；不要写成课程知识或科研综述。privateUpdatePolicy 要说明日常资料默认不自动写课程公共记忆；涉及个人偏好、长期计划或待办时，应进入私有/个人上下文，必要时等待用户确认。';
   }
   if (profile === 'university_course') {
-    return 'publicMemoryText 要是 800-1200 中文字的课程控制记忆：课程单元定位、学习目标、先修关系、核心概念、作业/考试/模板线索、后续教学动作；不要写成论文综述。privateUpdatePolicy 要说明课程资料上传没有学习者作答时不写私有记忆。';
+    return 'publicMemoryText 要写成与资料信息量相称的课程控制记忆：课程单元定位、学习目标、先修关系、核心概念、作业/考试/模板线索、后续教学动作；不要写成论文综述。privateUpdatePolicy 要说明课程资料上传没有学习者作答时不写私有记忆。';
   }
-  return 'publicMemoryText 要是 800-1400 中文字的公共记忆摘要：资料用途、核心知识、检索入口、教学边界。privateUpdatePolicy 要说明本次是否写私有记忆；课程资料上传没有学习者答题行为时，应明确“不写入私有记忆”。';
+  return 'publicMemoryText 要写成与资料信息量相称的公共记忆摘要：资料用途、核心知识、检索入口、教学边界。privateUpdatePolicy 要说明本次是否写私有记忆；课程资料上传没有学习者答题行为时，应明确“不写入私有记忆”。';
+}
+
+function normalizeSynthesizedCheatSheet(value: unknown): SourceCheatSheet {
+  const record = asRecord(value);
+  if (!record) throw new Error('Cheat Sheet response must be an object');
+  if (typeof record.definition !== 'string' || !record.definition.trim()) {
+    throw new Error('Cheat Sheet definition must be a non-empty string');
+  }
+  if (!Array.isArray(record.methods)) throw new Error('Cheat Sheet methods must be an array');
+  if (!Array.isArray(record.keyPoints)) {
+    throw new Error('Cheat Sheet keyPoints must be an array');
+  }
+  if (!Array.isArray(record.learningSteps)) {
+    throw new Error('Cheat Sheet learningSteps must be an array');
+  }
+  if (!Array.isArray(record.keywords)) throw new Error('Cheat Sheet keywords must be an array');
+  const methods = record.methods.map((item, index) => {
+    const row = asRecord(item);
+    if (!row) throw new Error(`Cheat Sheet methods[${index}] must be an object`);
+    const name = typeof row.name === 'string' ? row.name.trim() : '';
+    const trigger = typeof row.trigger === 'string' ? row.trigger.trim() : '';
+    const rule = typeof row.rule === 'string' ? row.rule.trim() : '';
+    const boundary = typeof row.boundary === 'string' ? row.boundary.trim() : '';
+    if (!name || !trigger || !rule) {
+      throw new Error(`Cheat Sheet methods[${index}] is missing name, trigger, or rule`);
+    }
+    return { name, trigger, rule, boundary };
+  });
+  const keyPoints = record.keyPoints.map((item, index) => {
+    const row = asRecord(item);
+    if (!row) throw new Error(`Cheat Sheet keyPoints[${index}] must be an object`);
+    const title = typeof row.title === 'string' ? row.title.trim() : '';
+    const detail = typeof row.detail === 'string' ? row.detail.trim() : '';
+    if (!title || !detail) {
+      throw new Error(`Cheat Sheet keyPoints[${index}] is missing title or detail`);
+    }
+    return { title, detail };
+  });
+  const parseStringList = (value: unknown[], field: string) =>
+    value.map((item, index) => {
+      if (typeof item !== 'string' || !item.trim()) {
+        throw new Error(`Cheat Sheet ${field}[${index}] must be a non-empty string`);
+      }
+      return item.trim();
+    });
+  return {
+    definition: record.definition.trim(),
+    methods,
+    keyPoints,
+    learningSteps: parseStringList(record.learningSteps, 'learningSteps'),
+    keywords: parseStringList(record.keywords, 'keywords'),
+  };
+}
+
+async function synthesizeSourceCheatSheetWithModel(args: {
+  model?: LanguageModel;
+  modelProviderId?: string | null;
+  sourceTitle: string;
+  sourceKind: SourceUploadKind;
+  sourceFileMime?: string | null;
+  openaiFileId?: string | null;
+  text: string;
+  language: 'zh-CN' | 'en-US';
+}): Promise<{
+  cheatSheet: SourceCheatSheet | null;
+  inputMode: SourceUploadIngestionResult['source']['aiSynthesisInput'];
+}> {
+  if (!args.model) throw new Error('Cheat Sheet generation requires a configured AI model.');
+  const useOpenAIFileInput = Boolean(
+    args.modelProviderId === 'openai' &&
+    args.sourceKind === 'pdf' &&
+    args.sourceFileMime !== 'application/octet-stream' &&
+    args.openaiFileId?.startsWith('file-'),
+  );
+  const inputMode = useOpenAIFileInput ? 'openai_file_id' : 'extracted_text';
+  const sample = useOpenAIFileInput ? '' : buildSynthesisSourceSample(args.text);
+  const outputLanguage = args.language === 'en-US' ? 'English' : 'Simplified Chinese';
+  const prompt = [
+    `资料标题：${args.sourceTitle}`,
+    '',
+    useOpenAIFileInput
+      ? '请直接阅读附加的原始文件，生成一页式学习 Cheat Sheet，并填充提供的结构化输出。'
+      : '请基于下面的原文抽样，生成一页式学习 Cheat Sheet，并填充提供的结构化输出。',
+    `输出语言：${outputLanguage}。`,
+    '',
+    `JSON schema:
+{
+  "definition": "主题定义、目标或总判定标准",
+  "methods": [
+    {"name": "方法名", "trigger": "何时考虑", "rule": "具体条件和结论", "boundary": "无结论或不能使用的情形"}
+  ],
+  "keyPoints": [{"title": "短标题", "detail": "准确的关键条件、易错点或证据边界"}],
+  "learningSteps": ["从定义到做题或复述的 5 个步骤"],
+  "keywords": ["可回查原文的概念与方法词"]
+}`,
+    '',
+    '质量要求：',
+    '- 这是考试复习用 Cheat Sheet，不是资料封面、课程介绍、元数据索引或广告。',
+    '- definition 必须写知识定义或总判定目标；不能写课程日期、用途或来源背景。',
+    '- methods 覆盖原文中的主要方法；每个方法应写出具体的 trigger、rule、boundary。',
+    '- keyPoints 只保留真正影响理解或做题的条件、结论和易错边界，数量由资料内容决定。',
+    '- learningSteps 形成可执行的复习或解题顺序，步骤数量由知识链路决定。',
+    '- keywords 选择能有效回查原文的定义、对象、性质和方法术语。',
+    '- 保留必要公式和英文术语，但说明以简体中文为主。',
+    '- 禁止把课程代码、校区、周次、日期、教师、作者、机构、免责声明放入任何字段。',
+    '- 不确定的规则写“原文未明确”，不得编造。',
+    useOpenAIFileInput ? '' : `\n原文抽样：\n${sample}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const messages: UserModelMessage[] | undefined = useOpenAIFileInput
+    ? [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'file',
+              data: args.openaiFileId!,
+              filename: args.sourceTitle,
+              mediaType: args.sourceFileMime || 'application/pdf',
+            },
+          ],
+        },
+      ]
+    : undefined;
+  const result = await callLLM(
+    {
+      model: args.model,
+      system:
+        'You extract source-faithful one-page study cheat sheets. Return content through the provided structured output schema.',
+      ...(messages ? { messages } : { prompt }),
+      output: Output.object({
+        schema: sourceCheatSheetSchema,
+        name: 'source_cheat_sheet',
+        description: 'Source-faithful content for one Chinese study cheat sheet.',
+      }),
+      temperature: 0.1,
+      maxOutputTokens: 2600,
+      maxRetries: 0,
+    },
+    'course-source-cheat-sheet-synthesis',
+    undefined,
+    { enabled: false },
+  );
+  return {
+    cheatSheet: normalizeSynthesizedCheatSheet(result.output),
+    inputMode,
+  };
+}
+
+async function routeSourceNotebookWithModel(args: {
+  model: LanguageModel;
+  sourceTitle: string;
+  sourceFileMime?: string | null;
+  openaiFileId?: string | null;
+  sample: string;
+  useOpenAIFileInput: boolean;
+  usageProfileOverride?: SourceUsageProfile;
+}): Promise<SourceNotebookRouteDecision> {
+  if (args.usageProfileOverride) {
+    return {
+      usageProfile: args.usageProfileOverride,
+      confidence: 1,
+      reasons: ['测试输入明确指定了生成路径，跳过 AI 自动路由。'],
+      sourceSignals: [args.sourceTitle],
+      source: 'user_override',
+    };
+  }
+  const prompt = [
+    `资料标题：${args.sourceTitle}`,
+    '',
+    '判断这份资料应该进入哪一种笔记生成路径：',
+    '- university_course：讲义、教材章节、习题课、复习资料；目标是理解定义、形成知识结构并解决题目。',
+    '- research：论文、研究报告、实验分析；目标是识别研究问题、主张、方法、证据、指标和局限。',
+    '- daily_use：行政文件、个人资料、项目清单或其他非课程、非研究资料。',
+    '',
+    '根据文件实际内容判断，不要因为当前页面课程、文件夹名称或用户身份猜测。reasons 写清判断依据，sourceSignals 写可在原文定位的信号。',
+    args.useOpenAIFileInput ? '' : `\n原文抽样：\n${args.sample}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const messages: UserModelMessage[] | undefined = args.useOpenAIFileInput
+    ? [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'file',
+              data: args.openaiFileId!,
+              filename: args.sourceTitle,
+              mediaType: args.sourceFileMime || 'application/pdf',
+            },
+          ],
+        },
+      ]
+    : undefined;
+  const result = await callLLM(
+    {
+      model: args.model,
+      system:
+        'Route source documents to course, research, or daily notebook generation using only evidence from the source.',
+      ...(messages ? { messages } : { prompt }),
+      output: Output.object({
+        schema: sourceNotebookRouteSchema,
+        name: 'source_notebook_route',
+        description: 'Evidence-backed choice of the appropriate notebook generator.',
+      }),
+      maxOutputTokens: 900,
+      maxRetries: 0,
+    },
+    'course-source-notebook-routing',
+    undefined,
+    { enabled: false },
+  );
+  const routing = sourceNotebookRouteSchema.parse(result.output);
+  return { ...routing, source: 'ai' };
 }
 
 async function synthesizeSourcePacketWithModel(args: {
   model?: LanguageModel;
+  modelProviderId?: string | null;
   sourcePacket: SourcePacket;
   sourceTitle: string;
+  sourceKind: SourceUploadKind;
+  sourceFileMime?: string | null;
+  openaiFileId?: string | null;
   sourceHash: string;
   topic: string;
   text: string;
   language: 'zh-CN' | 'en-US';
-}): Promise<SourcePacket> {
-  if (!args.model || args.sourcePacket.classification.allQuestionUpload) return args.sourcePacket;
-  if (
-    args.sourcePacket.classification.documentType !== 'paper' &&
-    args.sourcePacket.classification.documentType !== 'lecture_notes' &&
-    args.sourcePacket.classification.documentType !== 'mixed' &&
-    args.sourcePacket.classification.documentType !== 'unknown'
-  ) {
-    return args.sourcePacket;
+  usageProfileOverride?: SourceUsageProfile;
+}): Promise<{
+  sourcePacket: SourcePacket;
+  inputMode: SourceUploadIngestionResult['source']['aiSynthesisInput'];
+  routing: SourceNotebookRouteDecision | null;
+  studyGuide: SourceNotebookStudyGuide | null;
+}> {
+  if (args.sourcePacket.classification.allQuestionUpload) {
+    return {
+      sourcePacket: args.sourcePacket,
+      inputMode: 'not_used',
+      routing: null,
+      studyGuide: null,
+    };
+  }
+  if (!args.model) {
+    throw new Error('Markdown notebook generation requires the configured AI model.');
   }
 
-  const sample = buildSynthesisSourceSample(args.text);
-  if (sample.length < 500) return args.sourcePacket;
+  const useOpenAIFileInput = Boolean(
+    args.modelProviderId === 'openai' &&
+    args.sourceKind === 'pdf' &&
+    args.sourceFileMime !== 'application/octet-stream' &&
+    args.openaiFileId?.startsWith('file-'),
+  );
+  if (args.sourceKind === 'pdf' && !useOpenAIFileInput) {
+    throw new Error(
+      'PDF Markdown generation requires a successful OpenAI Files API upload; extracted-text fallback is disabled.',
+    );
+  }
+  const inputMode = useOpenAIFileInput ? 'openai_file_id' : 'extracted_text';
+  const sample = useOpenAIFileInput ? '' : buildSynthesisSourceSample(args.text);
+  if (!useOpenAIFileInput && sample.length < 500) {
+    throw new Error('Source text is too short for Markdown notebook generation.');
+  }
+  const routing = await routeSourceNotebookWithModel({
+    model: args.model,
+    sourceTitle: args.sourceTitle,
+    sourceFileMime: args.sourceFileMime,
+    openaiFileId: args.openaiFileId,
+    sample,
+    useOpenAIFileInput,
+    usageProfileOverride: args.usageProfileOverride,
+  });
   const outputLanguage = args.language === 'en-US' ? 'English' : 'Simplified Chinese';
-  const usageProfile = args.sourcePacket.classification.usageProfile;
+  const usageProfile = routing.usageProfile;
   const sectionPlan = synthesisSectionPlan(usageProfile);
+  const graphConceptLabel = usageProfile === 'research' ? '科研概念' : '课程概念';
+  const routeFieldDescription =
+    usageProfile === 'university_course'
+      ? 'courseGuide：本讲重点、完整定义、知识关系、做题关键想法、选法逻辑、标准书写格式、检查项、代表题型、常见错误、快速查阅入口和好笔记原则。'
+      : usageProfile === 'research'
+        ? 'researchGuide：研究问题、核心主张、方法 pipeline、证据与指标、每条证据支持什么、证据边界、局限、复现状态、检索词、快速查阅入口和好研究笔记原则。'
+        : 'dailyGuide：必要信息、行动、时间线、快速查阅入口和好资料索引原则。';
+  const routeRequirements =
+    usageProfile === 'university_course'
+      ? [
+          '- 课程型笔记的首要目标是让学生快速定位“定义是什么、为什么这样做、看到什么特征选什么方法、答案怎么写”。',
+          '- definitions 必须给出原文支持的完整定义、条件和记号，不能只给一句模糊摘要。',
+          '- 不要罗列全部题目。representativeProblems 只选择能代表不同方法、触发条件或边界的题型，并解释为什么值得保留。',
+          '- problemSolving.guidingIdea 写做题的核心想法；methodSelection 写如何从题目特征选择方法；solutionFormat 写学生落笔时的步骤与格式。三者不能互相替代。',
+          '- noteDesign 明确什么应进入好笔记、什么应省略，以及学生查定义、选法和复习时分别如何使用。',
+        ]
+      : usageProfile === 'research'
+        ? [
+            '- 研究型笔记不使用课程做题模板；核心是快速判断论文在问什么、声称什么、怎么证明、证据多强、边界在哪里。',
+            '- coreClaims 的每条主张必须连接到证据和适用边界；不能把作者动机当成实验结论。',
+            '- methodPipeline 写清每阶段输入、动作和输出；evidenceMap 保留指标、结果、支持的主张和不能推出的结论。',
+            '- reproducibility 区分原文明确、部分给出和缺失的信息；不得补造实验细节。',
+            '- noteDesign 说明好研究笔记如何减少全文翻找，并保留复核主张所需的检索入口。',
+          ]
+        : [
+            '- 日常资料只保留支持行动和回查的必要信息，不写成课程讲义或论文综述。',
+            '- noteDesign 说明如何快速查找信息、行动和时间节点。',
+          ];
+  const answerContractRequirements =
+    usageProfile === 'university_course'
+      ? [
+          '- answerContract 是独立的课程解题规范，不要把规则散落到普通知识正文。',
+          '- answerContract 只收录会改变答案形状的本地规则：老师要求的步骤顺序、符号、证明或计算格式、必须检查的条件、评分检查、禁止做法、课程私域设置。',
+          '- 通用定义、通用公式、普通知识点和完整例题不属于 answerContract。',
+          '- 每条 answerContract rule 必须带可回查的原文证据；没有明确证据时 shouldPersist=false 且 rules=[]，禁止猜老师偏好。',
+          '- answerContract.courseCode 只能从原始文件读取，不能使用当前页面或目标课程上下文猜测。',
+          '- 若 answerContract.shouldPersist=true，sections 中必须生成一节独立的课程专属解题规范。',
+        ]
+      : [
+          '- 当前不是课程生成路径；answerContract.shouldPersist=false，rules=[]，不要套用课程做题模板。',
+        ];
   const prompt = [
     `资料标题：${args.sourceTitle}`,
     `主题：${args.topic}`,
     `资料类型：${args.sourcePacket.classification.documentType}`,
     `使用链路：${usageProfileLabel(usageProfile)} (${usageProfile})`,
     '',
-    '请基于下面抽样原文，输出严格 JSON，不要 Markdown fence，不要额外解释。',
-    'JSON schema:',
-    `{
-  "topic": "string",
-  "publicMemoryText": "string",
-  "privateUpdatePolicy": "string",
-  "sections": [
-    {"key": "overview", "title": "string", "summary": "string", "markdown": "string"}
-  ],
-  "graph": {"concepts": ["string"], "methods": ["string"]}
-}`,
+    useOpenAIFileInput
+      ? '请直接阅读随消息附加的原始 PDF 文件，并填充提供的结构化输出；不要额外解释。'
+      : '请基于下面抽样原文填充提供的结构化输出；不要额外解释。',
+    '结构化输出包含通用字段 topic、sections、graph、answerContract、publicMemoryText、privateUpdatePolicy，以及当前生成路径专属字段。',
+    routeFieldDescription,
     '',
     `要求：`,
     `- 输出语言：${outputLanguage}。本平台默认中文；除专有名词外，不要整段英文。`,
-    `- sections 必须正好 5 个，按这个脉络：${sectionPlan}。`,
-    '- 每个 markdown 是一份学生可读笔记，不要长篇摘抄原文；每段控制在 450-800 中文字左右。',
-    '- 笔记要有节奏，不要只有表格。每个 section 必须混合：2-4 个讲解段落、1 个引用式提醒块（> 阅读抓手/不要误读/课程用法）、1 个短列表或步骤列表、最多 1 个 Markdown table。',
-    '- Markdown table 只用于“对比/证据/边界”的结构锚点；不要连续输出多个表格，不要把正文都塞进表格。',
-    '- 优先用短标题分隔非表格块，例如：### 先抓主线、### 不要误读、### 课堂怎么用。',
+    `- sections 按资料实际知识结构组织，数量和篇幅应与原文内容相称；可参考但不要机械照抄：${sectionPlan}。`,
+    '- 每个 markdown 必须是已经重写好的学生笔记，不是原文摘抄、OCR 清洗结果或页面索引。',
+    '- 数学公式必须重建为 $...$ 或 $$...$$ LaTeX；看不清的公式标注“原式需回看对应页”，禁止输出破碎 OCR 字符。',
+    '- 每节使用清晰的二三级标题、短段落和必要列表；只在确实需要比较时使用表格。',
+    '- section.title 由页面单独渲染，因此 markdown 正文不得再写同名一级标题；直接从讲解正文或 ## 小标题开始。',
+    '- 不要为每一节重复资料标题、来源、课程位置、日期、教师或“入库状态”。',
+    '- 删除封面、Disclaimer、机构宣传、版权/销售文字、页眉页脚、页码和教师姓名。',
     '- 可以保留英文术语，但必须给中文解释，例如 diffusion model（扩散模型）。',
     '- 不确定的内容写“原文未明确”，不要编造。',
+    '- 课程代码、校区、周次、日期、教师、作者、机构、免责声明属于来源元数据，绝不能放入 graph.concepts 或普通方法内容。',
+    '- 输出前自行检查是否覆盖当前路径真正需要的信息，并避免重复标题、宣传/版权文字和大段原文搬运。程序不会在生成后重试、补写或改写结果。',
     `- ${synthesisMemoryRequirement(usageProfile)}`,
     usageProfile === 'daily_use'
       ? '- graph.concepts 只保留真正可检索对象，例如人、项目、地点、日期节点、行动主题；不要放 pdf、article、of 等噪声。'
-      : '- graph.concepts 只保留真正课程概念，不要放 pdf、article、of 等噪声。',
+      : `- graph.concepts 只保留真正${graphConceptLabel}（定义、对象、性质、关系），不要放课程代码、校区、周次、日期、教师、作者、机构、pdf、article、of 等元数据或噪声。`,
     '- graph.methods 只保留方法/流程名。',
+    ...answerContractRequirements,
+    ...routeRequirements,
     '',
-    '抽样原文：',
+    useOpenAIFileInput ? '原始 PDF 已通过 OpenAI Files API 的 file_id 附加。' : '抽样原文：',
     sample,
   ].join('\n');
 
+  const structuredOutput =
+    usageProfile === 'university_course'
+      ? Output.object({
+          schema: sourceCourseNotebookSynthesisSchema,
+          name: 'course_markdown_notebook',
+          description:
+            'A retrieval-efficient course notebook with complete definitions and problem-solving guidance.',
+        })
+      : usageProfile === 'research'
+        ? Output.object({
+            schema: sourceResearchNotebookSynthesisSchema,
+            name: 'research_markdown_notebook',
+            description:
+              'A research notebook organized around claims, methods, evidence, metrics, and boundaries.',
+          })
+        : Output.object({
+            schema: sourceDailyNotebookSynthesisSchema,
+            name: 'daily_markdown_notebook',
+            description: 'A concise daily-use information and action notebook.',
+          });
+
   try {
+    const messages: UserModelMessage[] | undefined = useOpenAIFileInput
+      ? [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'file',
+                data: args.openaiFileId!,
+                filename: args.sourceTitle,
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ]
+      : undefined;
     const result = await callLLM(
       {
         model: args.model,
         system:
-          'You are a course source ingestion synthesizer. Produce compact, faithful, varied study notes with paragraphs, callouts, lists, and at most one table per section. Return valid JSON only.',
-        prompt,
-        temperature: 0.2,
-        maxOutputTokens: 5200,
+          usageProfile === 'university_course'
+            ? 'Read the original file and create a retrieval-efficient course notebook. Preserve complete definitions, representative problem types, method-selection reasoning, solution format, formulas, and only evidence-backed course-local answer conventions. Do not reproduce every exercise. Return the provided structured output.'
+            : usageProfile === 'research'
+              ? 'Read the original research source and create a retrieval-efficient research notebook organized around research question, claims, method pipeline, evidence, metrics, boundaries, limitations, and reproducibility. Do not apply a course exercise template. Return the provided structured output.'
+              : 'Read the original source and create a concise retrieval-and-action notebook containing only necessary information, actions, timing, and lookup anchors. Return the provided structured output.',
+        ...(messages ? { messages } : { prompt }),
+        output: structuredOutput,
+        maxOutputTokens: 14_000,
+        maxRetries: 0,
       },
       'course-source-upload-synthesis',
-      {
-        retries: 1,
-        validate: (text) => Boolean(extractJsonObject(text)),
-      },
+      undefined,
       { enabled: false },
     );
-    const parsed = asRecord(extractJsonObject(result.text));
-    if (!parsed) return args.sourcePacket;
+    const parsed = asRecord(result.output);
+    if (!parsed) throw new Error('Notebook synthesis response must be a JSON object.');
     const rawSections = Array.isArray(parsed.sections) ? parsed.sections : [];
-    const sections = rawSections
-      .map((section, index) =>
-        normalizeSynthesizedSection({
-          value: section,
-          index,
-          sourceTitle: args.sourceTitle,
-          sourceHash: args.sourceHash,
-          usageProfile,
-        }),
-      )
-      .filter((section): section is SourcePacketNotebookSection => Boolean(section))
-      .slice(0, 5);
-    if (sections.length !== 5) return args.sourcePacket;
+    const sections = rawSections.map((section, index) =>
+      normalizeSynthesizedSection({
+        value: section,
+        index,
+        sourceTitle: args.sourceTitle,
+        sourceHash: args.sourceHash,
+      }),
+    );
+    if (sections.length === 0) throw new Error('Notebook synthesis returned no sections.');
     const graphRecord = asRecord(parsed.graph);
-    const publicSummary =
-      typeof parsed.publicMemoryText === 'string' ? compact(parsed.publicMemoryText, 3_600) : '';
-    const privateUpdatePolicy =
-      typeof parsed.privateUpdatePolicy === 'string'
-        ? compact(parsed.privateUpdatePolicy, 600)
-        : '本次上传是课程资料入库，没有学习者答题、薄弱点或下一步教学动作，因此不写入私有记忆。';
-    const topic =
-      typeof parsed.topic === 'string' ? cleanTitle(parsed.topic, args.topic) : args.topic;
+    if (!graphRecord) throw new Error('Notebook synthesis graph must be an object.');
+    const answerContract = normalizeSynthesizedAnswerContract(parsed.answerContract);
+    const parseStringList = (value: unknown, field: string) => {
+      if (!Array.isArray(value)) throw new Error(`${field} must be an array.`);
+      return value.map((item, index) => {
+        if (typeof item !== 'string' || !item.trim()) {
+          throw new Error(`${field}[${index}] must be a non-empty string.`);
+        }
+        return item.trim();
+      });
+    };
+    const graphConcepts = parseStringList(graphRecord.concepts, 'graph.concepts');
+    const graphMethods = parseStringList(graphRecord.methods, 'graph.methods');
+    if (typeof parsed.publicMemoryText !== 'string') {
+      throw new Error('publicMemoryText must be a string.');
+    }
+    if (typeof parsed.privateUpdatePolicy !== 'string') {
+      throw new Error('privateUpdatePolicy must be a string.');
+    }
+    if (typeof parsed.topic !== 'string' || !parsed.topic.trim()) {
+      throw new Error('topic must be a non-empty string.');
+    }
+    const publicSummary = parsed.publicMemoryText;
+    const privateUpdatePolicy = parsed.privateUpdatePolicy;
+    const topic = parsed.topic.trim();
+    const studyGuide: SourceNotebookStudyGuide =
+      usageProfile === 'university_course'
+        ? {
+            kind: 'course',
+            content: sourceCourseNotebookGuideSchema.parse(parsed.courseGuide),
+          }
+        : usageProfile === 'research'
+          ? {
+              kind: 'research',
+              content: sourceResearchNotebookGuideSchema.parse(parsed.researchGuide),
+            }
+          : {
+              kind: 'daily',
+              content: sourceDailyNotebookGuideSchema.parse(parsed.dailyGuide),
+            };
     return {
-      ...args.sourcePacket,
-      classification: {
-        ...args.sourcePacket.classification,
-        topic,
-      },
-      notebookSections: sections,
-      graph: {
-        ...args.sourcePacket.graph,
-        concepts: stringArray(graphRecord?.concepts, 24),
-        methods: stringArray(graphRecord?.methods, 16),
-        sourceRefs: args.sourcePacket.graph.sourceRefs,
-      },
-      memory: {
-        ...args.sourcePacket.memory,
-        publicSummary,
-        privateUpdatePolicy,
+      inputMode,
+      routing,
+      studyGuide,
+      sourcePacket: {
+        ...args.sourcePacket,
+        classification: {
+          ...args.sourcePacket.classification,
+          topic,
+          usageProfile,
+          usageProfileConfidence: routing.confidence,
+          usageProfileReasons: routing.reasons,
+        },
+        notebookSections: sections,
+        answerContract,
+        graph: {
+          ...args.sourcePacket.graph,
+          concepts: graphConcepts,
+          methods: graphMethods,
+          sourceRefs: args.sourcePacket.graph.sourceRefs,
+        },
+        memory: {
+          ...args.sourcePacket.memory,
+          publicSummary,
+          privateUpdatePolicy,
+        },
       },
     };
-  } catch {
-    return args.sourcePacket;
+  } catch (error) {
+    throw new Error(
+      `AI file-to-Markdown generation failed; no fallback was applied: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
+}
+
+export type SourceMarkdownNotebookPreview = {
+  source: {
+    title: string;
+    hash: string;
+    openaiFileId: string | null;
+    aiSynthesisInput: SourceUploadIngestionResult['source']['aiSynthesisInput'];
+  };
+  classification: {
+    documentType: SourcePacket['classification']['documentType'];
+    usageProfile: SourceUsageProfile;
+    topic: string;
+    courseCode: string | null;
+  };
+  title: string;
+  routing: SourceNotebookRouteDecision;
+  studyGuide: SourceNotebookStudyGuide;
+  sections: Array<{
+    key: string;
+    title: string;
+    summary: string;
+    markdown: string;
+  }>;
+  answerContract: SourceAnswerContract | null;
+};
+
+/**
+ * Generate Markdown directly from the original OpenAI file input without any
+ * course/database writes. Production ingestion and the QA page share the same
+ * source-packet synthesis function. Content quality is requested in the prompt;
+ * the caller does not retry, repair, rewrite, or fall back to extracted PDF text.
+ */
+export async function prepareSourceMarkdownNotebook(args: {
+  sourceTitle: string;
+  sourceKind: SourceUploadKind;
+  sourceFileMime?: string | null;
+  text: string;
+  rawFileHash?: string | null;
+  openaiFileId?: string | null;
+  parser?: string | null;
+  pageCount?: number | null;
+  slideCount?: number | null;
+  language?: 'zh-CN' | 'en-US';
+  usageProfile?: SourceUsageProfile;
+  model?: LanguageModel;
+  modelProviderId?: string | null;
+}): Promise<SourceMarkdownNotebookPreview> {
+  const processedText = compact(args.text, MAX_SOURCE_TEXT_CHARS);
+  const sourceHash =
+    args.rawFileHash?.trim() ||
+    sha256([args.sourceTitle, args.sourceKind, processedText].join('\n\n'));
+  const topic = extractTopic({
+    sourceTitle: args.sourceTitle,
+    text: processedText,
+    artifacts: [],
+    drafts: [],
+  });
+  let sourcePacket = buildSourcePacket({
+    sourceTitle: args.sourceTitle,
+    sourceKind: args.sourceKind,
+    sourceFileMime: args.sourceFileMime,
+    sourceHash,
+    rawFileHash: args.rawFileHash,
+    openaiFileId: args.openaiFileId,
+    parser: args.parser,
+    pageCount: args.pageCount,
+    slideCount: args.slideCount,
+    courseCode: null,
+    topic,
+    text: processedText,
+    allQuestionUpload: false,
+    problemExtractionEligible: false,
+    problemSignalCount: 0,
+    usageProfile: args.usageProfile,
+    artifacts: [],
+    drafts: [],
+  });
+  const synthesis = await synthesizeSourcePacketWithModel({
+    model: args.model,
+    modelProviderId: args.modelProviderId,
+    sourcePacket,
+    sourceTitle: args.sourceTitle,
+    sourceKind: args.sourceKind,
+    sourceFileMime: args.sourceFileMime,
+    openaiFileId: args.openaiFileId,
+    sourceHash,
+    topic,
+    text: processedText,
+    language: args.language || 'zh-CN',
+    usageProfileOverride: args.usageProfile,
+  });
+  sourcePacket = synthesis.sourcePacket;
+  const resolvedTopic = sourcePacket.classification.topic || topic;
+  return {
+    source: {
+      title: args.sourceTitle,
+      hash: sourceHash,
+      openaiFileId: args.openaiFileId || null,
+      aiSynthesisInput: synthesis.inputMode,
+    },
+    classification: {
+      documentType: sourcePacket.classification.documentType,
+      usageProfile: sourcePacket.classification.usageProfile,
+      topic: resolvedTopic,
+      courseCode: sourcePacket.answerContract?.courseCode || null,
+    },
+    title: resolvedTopic,
+    routing:
+      synthesis.routing ||
+      (() => {
+        throw new Error('Notebook routing result is missing.');
+      })(),
+    studyGuide:
+      synthesis.studyGuide ||
+      (() => {
+        throw new Error('Notebook study guide is missing.');
+      })(),
+    sections: sourcePacket.notebookSections.map((section) => ({
+      key: section.key,
+      title: section.title,
+      summary: section.summary,
+      markdown: section.markdown,
+    })),
+    answerContract: sourcePacket.answerContract || null,
+  };
 }
 
 function stripMarkdownForMemory(input: string): string {
@@ -1332,6 +2213,80 @@ function sourceMemoryBoundary(sourcePacket: SourcePacket): string {
   return sourcePacket.classification.documentType === 'paper'
     ? '教学边界：这是论文型资料，不是题库；回答时应解释论文贡献、方法、实验与局限，不要自动伪造题目。'
     : '教学边界：回答时优先检索资料对应的 notebook sections；如果需要练习题，应由单独题目流程生成或导入。';
+}
+
+function buildAnswerContractMemoryCandidate(args: {
+  courseId: string;
+  currentCourseCode: string | null;
+  sourceTitle: string;
+  sourceHash: string;
+  sourcePacket: SourcePacket;
+}): MemoryWriteCandidate | null {
+  const contract = args.sourcePacket.answerContract;
+  if (!contract?.shouldPersist || contract.rules.length === 0) return null;
+  const normalizeCourseCode = (value: string | null) =>
+    value?.toUpperCase().replace(/\s+/g, '') || '';
+  const currentCourseCode = normalizeCourseCode(args.currentCourseCode);
+  const sourceCourseCode = normalizeCourseCode(contract.courseCode);
+  if (currentCourseCode && sourceCourseCode && currentCourseCode !== sourceCourseCode) {
+    return null;
+  }
+  const categoryLabels: Record<SourceAnswerContract['rules'][number]['category'], string> = {
+    solution_format: '解题格式',
+    method_choice: '选法顺序',
+    notation: '符号与记号',
+    proof_style: '证明风格',
+    grading: '评分与检查',
+    forbidden_move: '禁止做法',
+    private_setting: '课程私域设置',
+  };
+  const text = [
+    `# ${contract.title}`,
+    '',
+    contract.courseCode ? `课程：${contract.courseCode}` : '',
+    contract.summary,
+    '',
+    ...contract.rules.flatMap((rule, index) => [
+      `## ${index + 1}. ${categoryLabels[rule.category]}`,
+      rule.rule,
+      ...(rule.when ? [`- 适用时机：${rule.when}`] : []),
+      ...(rule.example ? [`- 格式示例：${rule.example}`] : []),
+      `- 证据：${rule.evidence}`,
+      '',
+    ]),
+    '> 仅把这些会改变答案形状的本地规则用于后续回答；普通定义、公式与完整例题仍从 notebook/RAG 检索。',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return {
+    trigger: 'source_import',
+    contentType: 'course_requirement',
+    targetType: 'course',
+    targetId: args.courseId,
+    privacy: 'public',
+    source: 'openai-file-answer-contract',
+    sourceRef: {
+      sourceTitle: args.sourceTitle,
+      sourceHash: args.sourceHash,
+      sourceCourseCode: contract.courseCode,
+    },
+    studyMemory: {
+      targetType: 'course',
+      targetId: args.courseId,
+      scope: 'public',
+      kind: 'course_template',
+      title: contract.title,
+      text,
+      reason: '从原始文件直接识别出的课程专属解题格式、教师偏好或私域规则。',
+      sourceReferences: contract.rules.map((rule, index) => ({
+        order: index + 1,
+        title: args.sourceTitle,
+        why: rule.evidence,
+        sourceHash: args.sourceHash,
+        courseCode: contract.courseCode,
+      })),
+    },
+  };
 }
 
 function sourceMemorySectionDigest(args: {
@@ -1725,6 +2680,55 @@ function structuredItemFallbackDetail(args: {
   return `${args.label} 是日常资料中的检索对象；回答时应回到原文确认它对应的人、事、时间或后续动作。`;
 }
 
+function isNonKnowledgeMetadataConcept(value: string, usageProfile: SourceUsageProfile): boolean {
+  if (usageProfile === 'daily_use') return false;
+  const normalized = collapseSpaces(value.normalize('NFKC')).trim();
+  return (
+    /^(?:MAT|CSC|CPSC|STA|PHY|CHEM|BIO|ECO)\s*-?\s*\d{3}$/i.test(normalized) ||
+    /^(?:UTSG|UTM|UTSC|week\s*\d+|class\s*\d*)$/i.test(normalized) ||
+    /^\d{4}[/-]\d{1,2}[/-]\d{1,2}$/.test(normalized) ||
+    /(?:education|university|college|校区|导师|教师|讲师|免责声明|提供方)/i.test(normalized) ||
+    /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(normalized)
+  );
+}
+
+function knownCourseConceptDetail(label: string): string | null {
+  const normalized = normalizedSearchText(label).replace(/\s+/g, '');
+  if (normalized === 'series' || normalized.includes('级数')) {
+    return '级数由部分和序列 S_n 定义；当 lim S_n 存在且有限时级数收敛，否则发散。';
+  }
+  if (normalized.includes('部分和')) {
+    return '部分和 S_n=a_1+⋯+a_n；研究级数敛散，本质上是研究部分和序列的极限。';
+  }
+  if (normalized.includes('收敛')) {
+    return '收敛表示部分和序列趋于有限极限；不能只由一般项 a_n→0 推出。';
+  }
+  if (normalized.includes('发散')) {
+    return '发散表示部分和没有有限极限；a_n 不趋于 0 或极限不存在时可直接判发散。';
+  }
+  return null;
+}
+
+function knownCourseMethodDetail(label: string): string | null {
+  const normalized = normalizedSearchText(label).replace(/\s+/g, '');
+  if (normalized.includes('发散判别') || normalized.includes('divergencetest')) {
+    return '先计算 lim a_n。若极限不为 0 或不存在，则级数发散；若等于 0，此法无结论，必须换方法。';
+  }
+  if (normalized.includes('积分判别') || normalized.includes('integraltest')) {
+    return '把 a_n 写成 f(n)，先检查 f 在 [1,∞) 连续、为正、递减；再用反常积分与级数同敛散。';
+  }
+  if (normalized.includes('比较法') || normalized.includes('comparisontest')) {
+    return '用于正项级数：把 a_n 与已知基准级数 b_n 比较；比较方向必须与要证明的收敛或发散一致。';
+  }
+  if (normalized.includes('比值判别') || normalized.includes('ratiotest')) {
+    return '计算 L=lim|a_{n+1}/a_n|。L<1 收敛，L>1 发散，L=1 无结论。';
+  }
+  if (normalized.includes('部分和求极限')) {
+    return '先写部分和 S_n，再计算 lim S_n；极限存在且有限则收敛，否则发散。';
+  }
+  return null;
+}
+
 function structuredItems(args: {
   values: string[];
   sourcePacket: SourcePacket;
@@ -1751,9 +2755,12 @@ function structuredItems(args: {
     if (!normalized) return false;
     if (args.itemKind === 'concept' && blocked.has(normalized)) return false;
     if (args.itemKind === 'concept' && /^\d{4}$/.test(value.trim())) return false;
+    if (args.itemKind === 'concept' && isNonKnowledgeMetadataConcept(value, args.usageProfile)) {
+      return false;
+    }
     return true;
   });
-  const values = filteredValues.length >= 4 ? filteredValues : args.values;
+  const values = filteredValues;
   return values.slice(0, 10).map((value) => {
     const evidence = structuredItemEvidence({
       label: value,
@@ -1763,6 +2770,12 @@ function structuredItems(args: {
     return {
       label: value,
       detail:
+        (args.usageProfile === 'university_course' && args.itemKind === 'concept'
+          ? knownCourseConceptDetail(value)
+          : null) ||
+        (args.usageProfile === 'university_course' && args.itemKind === 'method'
+          ? knownCourseMethodDetail(value)
+          : null) ||
         evidence.detail ||
         structuredItemFallbackDetail({
           label: value,
@@ -1781,7 +2794,9 @@ function sourceRetrievalTriggers(args: {
 }): string[] {
   const base = [
     args.topic,
-    ...args.sourcePacket.graph.concepts.slice(0, 6),
+    ...args.sourcePacket.graph.concepts
+      .filter((concept) => !isNonKnowledgeMetadataConcept(concept, args.usageProfile))
+      .slice(0, 6),
     ...args.sourcePacket.graph.methods.slice(0, 4),
   ]
     .map((item) => cleanTitle(item))
@@ -2213,18 +3228,30 @@ function buildStructuredSourceNotes(args: {
     sourcePacket: args.sourcePacket,
     usageProfile,
   });
-  const conceptItems = structuredItems({
-    values: args.sourcePacket.graph.concepts,
-    sourcePacket: args.sourcePacket,
-    usageProfile,
-    itemKind: 'concept',
-  });
-  const methodItems = structuredItems({
-    values: args.sourcePacket.graph.methods,
-    sourcePacket: args.sourcePacket,
-    usageProfile,
-    itemKind: 'method',
-  });
+  const conceptItems = args.sourcePacket.cheatSheet?.keyPoints.length
+    ? args.sourcePacket.cheatSheet.keyPoints.map((item) => ({
+        label: item.title,
+        detail: item.detail,
+        evidenceRefs: ['Cheat Sheet / 原文'],
+      }))
+    : structuredItems({
+        values: args.sourcePacket.graph.concepts,
+        sourcePacket: args.sourcePacket,
+        usageProfile,
+        itemKind: 'concept',
+      });
+  const methodItems = args.sourcePacket.cheatSheet?.methods.length
+    ? args.sourcePacket.cheatSheet.methods.map((item) => ({
+        label: item.name,
+        detail: `${item.trigger}；${item.rule}；边界：${item.boundary}`,
+        evidenceRefs: ['Cheat Sheet / 原文'],
+      }))
+    : structuredItems({
+        values: args.sourcePacket.graph.methods,
+        sourcePacket: args.sourcePacket,
+        usageProfile,
+        itemKind: 'method',
+      });
   const controlSummary = sourceSpecificControlSummary({
     topic: args.topic,
     usageProfile,
@@ -2260,27 +3287,36 @@ function buildStructuredSourceNotes(args: {
     concepts: conceptItems,
     methods: methodItems,
   });
-  const notebookSummary = sourceSpecificNotebookSummary({
-    topic: args.topic,
-    usageProfile,
-    sections: sectionCards,
-    concepts: conceptItems,
-    methods: methodItems,
-  });
-  const notebookLearningPath = sourceSpecificNotebookLearningPath({
-    topic: args.topic,
-    usageProfile,
-    sections: sectionCards,
-    concepts: conceptItems,
-    methods: methodItems,
-  });
-  const notebookKeyTakeaways = sourceSpecificNotebookTakeaways({
-    topic: args.topic,
-    usageProfile,
-    sections: sectionCards,
-    concepts: conceptItems,
-    methods: methodItems,
-  });
+  const notebookSummary = args.sourcePacket.cheatSheet
+    ? compact(
+        `${args.sourcePacket.cheatSheet.definition} 主要方法：${args.sourcePacket.cheatSheet.methods.map((item) => item.name).join('、')}。`,
+        680,
+      )
+    : sourceSpecificNotebookSummary({
+        topic: args.topic,
+        usageProfile,
+        sections: sectionCards,
+        concepts: conceptItems,
+        methods: methodItems,
+      });
+  const notebookLearningPath = args.sourcePacket.cheatSheet?.learningSteps.length
+    ? args.sourcePacket.cheatSheet.learningSteps
+    : sourceSpecificNotebookLearningPath({
+        topic: args.topic,
+        usageProfile,
+        sections: sectionCards,
+        concepts: conceptItems,
+        methods: methodItems,
+      });
+  const notebookKeyTakeaways = args.sourcePacket.cheatSheet?.keyPoints.length
+    ? args.sourcePacket.cheatSheet.keyPoints.map((item) => `${item.title}：${item.detail}`)
+    : sourceSpecificNotebookTakeaways({
+        topic: args.topic,
+        usageProfile,
+        sections: sectionCards,
+        concepts: conceptItems,
+        methods: methodItems,
+      });
   const notebookAnswerStrategy = sourceSpecificNotebookAnswerStrategy({
     topic: args.topic,
     usageProfile,
@@ -3172,6 +4208,10 @@ export async function ingestCourseSourceUpload(
     artifacts: memoryPlan.artifacts,
     drafts: problemExtraction.drafts,
   });
+  const sourcePacketCourseCode =
+    preliminaryDocumentType === 'paper' && args.usageProfile !== 'university_course'
+      ? null
+      : memoryPlan.courseCode;
   let sourcePacket = buildSourcePacket({
     sourceTitle: args.sourceTitle,
     sourceKind,
@@ -3182,7 +4222,7 @@ export async function ingestCourseSourceUpload(
     parser: args.parser,
     pageCount: args.pageCount,
     slideCount: args.slideCount,
-    courseCode: memoryPlan.courseCode,
+    courseCode: sourcePacketCourseCode,
     topic,
     text: processedText,
     allQuestionUpload,
@@ -3192,15 +4232,21 @@ export async function ingestCourseSourceUpload(
     artifacts: memoryPlan.artifacts,
     drafts: problemExtraction.drafts,
   });
-  sourcePacket = await synthesizeSourcePacketWithModel({
+  const synthesis = await synthesizeSourcePacketWithModel({
     model: args.model,
+    modelProviderId: args.modelProviderId,
     sourcePacket,
     sourceTitle: args.sourceTitle,
+    sourceKind,
+    sourceFileMime: args.sourceFileMime,
+    openaiFileId: args.openaiFileId,
     sourceHash,
     topic,
     text: processedText,
     language: args.language || 'zh-CN',
+    usageProfileOverride: args.usageProfile,
   });
+  sourcePacket = synthesis.sourcePacket;
   topic = sourcePacket.classification.topic || topic;
 
   let importBatchId: string | null = null;
@@ -3283,6 +4329,7 @@ export async function ingestCourseSourceUpload(
       prisma: args.prisma,
       courseId: args.courseId,
       notebookId: resolvedNotebook.id,
+      sourceHash,
       sections: packetSections.map((section) => ({
         title: section.title,
         markdown: section.markdown,
@@ -3322,10 +4369,12 @@ export async function ingestCourseSourceUpload(
   }
 
   if (notebook && !allQuestionUpload) {
-    const templateTitles = memoryPlan.artifacts
-      .filter((artifact) => artifact.staticInjectionCandidate)
-      .map((artifact) => artifact.title)
-      .slice(0, 8);
+    const templateTitles = sourcePacket.answerContract?.shouldPersist
+      ? [sourcePacket.answerContract.title]
+      : memoryPlan.artifacts
+          .filter((artifact) => artifact.staticInjectionCandidate)
+          .map((artifact) => artifact.title)
+          .slice(0, 8);
     sourcePacket = {
       ...sourcePacket,
       structuredNotes: buildStructuredSourceNotes({
@@ -3338,7 +4387,7 @@ export async function ingestCourseSourceUpload(
     };
   }
 
-  if (notebook && !allQuestionUpload) {
+  if (notebook && !allQuestionUpload && args.generateNotebookCover !== false) {
     notebookCover = await generateNotebookCoverForSource({
       prisma: args.prisma,
       userId: args.userId,
@@ -3356,9 +4405,20 @@ export async function ingestCourseSourceUpload(
     };
   }
 
-  const templateCandidates = memoryPlan.writeCandidates.filter(
-    (candidate) => candidate.contentType === 'course_requirement',
-  );
+  const synthesizedTemplateCandidate = buildAnswerContractMemoryCandidate({
+    courseId: args.courseId,
+    currentCourseCode: course.courseCode,
+    sourceTitle: args.sourceTitle,
+    sourceHash,
+    sourcePacket,
+  });
+  const templateCandidates = sourcePacket.answerContract
+    ? synthesizedTemplateCandidate
+      ? [synthesizedTemplateCandidate]
+      : []
+    : memoryPlan.writeCandidates.filter(
+        (candidate) => candidate.contentType === 'course_requirement',
+      );
   const courseSummaryCandidate =
     notebook && !allQuestionUpload && sourcePacket.classification.usageProfile !== 'daily_use'
       ? buildCourseSummaryCandidate({
@@ -3530,6 +4590,7 @@ export async function ingestCourseSourceUpload(
       processedChars: processedText.length,
       truncated: processedText.length < rawText.length,
       courseCode: memoryPlan.courseCode,
+      aiSynthesisInput: synthesis.inputMode,
     },
     classification: {
       documentType: sourcePacket.classification.documentType,

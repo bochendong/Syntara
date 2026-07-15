@@ -34,6 +34,49 @@ export type SourceStructuredNoteItem = {
   evidenceRefs?: string[];
 };
 
+export type SourceCheatSheet = {
+  definition: string;
+  methods: Array<{
+    name: string;
+    trigger: string;
+    rule: string;
+    boundary: string;
+  }>;
+  keyPoints: Array<{
+    title: string;
+    detail: string;
+  }>;
+  learningSteps: string[];
+  keywords: string[];
+};
+
+export type SourceAnswerContractRule = {
+  category:
+    | 'solution_format'
+    | 'method_choice'
+    | 'notation'
+    | 'proof_style'
+    | 'grading'
+    | 'forbidden_move'
+    | 'private_setting';
+  rule: string;
+  when: string;
+  example: string;
+  evidence: string;
+};
+
+/**
+ * Course-local answer preferences extracted from the original source file.
+ * Generic subject knowledge must stay in notebook sections/RAG instead.
+ */
+export type SourceAnswerContract = {
+  shouldPersist: boolean;
+  title: string;
+  courseCode: string | null;
+  summary: string;
+  rules: SourceAnswerContractRule[];
+};
+
 export type SourceStructuredNotebookKnowledge = {
   componentType: 'research_evidence_card' | 'course_learning_card' | 'daily_index_card';
   title: string;
@@ -106,6 +149,8 @@ export type SourcePacket = {
     sourceRefs: SourcePacketEvidenceRef[];
   };
   structuredNotes?: SourceStructuredNotes;
+  cheatSheet?: SourceCheatSheet;
+  answerContract?: SourceAnswerContract;
   memory?: {
     publicSummary?: string;
     privateUpdatePolicy?: string;
@@ -307,6 +352,20 @@ function extractNumericEvidenceBlocks(text: string): string[] {
   return blocks.slice(0, 8);
 }
 
+function lectureNoteSignalCount(sourceTitle: string, text: string): number {
+  const haystack = `${sourceTitle}\n${text.slice(0, 90_000)}`.toLowerCase();
+  return [
+    /\b(?:lecture|slides?|lesson|course|class|week\s*\d+|module|unit|chapter|tutorial|worksheet)\b/.test(
+      haystack,
+    ),
+    /\b(?:mat|csc|cpsc|sta|phy|chem|bio|eco)\s*-?\s*\d{3}\b/.test(haystack),
+    /\b(?:divergence|integral|comparison|ratio)\s+test\b/.test(haystack),
+    /(?:讲义|课程|课件|章节|单元|课堂|定义|定理|例题|判别法|练习)/.test(haystack),
+    /^(?:slide|page)\s+\d+/im.test(text),
+    /^#{1,3}\s+\S/m.test(text),
+  ].filter(Boolean).length;
+}
+
 function inferDocumentType(args: SourcePacketBuildArgs): {
   documentType: SourcePacketDocumentType;
   confidence: number;
@@ -346,12 +405,7 @@ function inferDocumentType(args: SourcePacketBuildArgs): {
     };
   }
 
-  const lectureSignals = [
-    /\b(?:lecture|slides?|module|unit|chapter)\b/i.test(haystack),
-    /^(?:slide|page)\s+\d+/im.test(args.text),
-    /^#{1,3}\s+\S/m.test(args.text),
-    /(?:讲义|课程|章节|单元|课堂)/.test(args.text),
-  ].filter(Boolean).length;
+  const lectureSignals = lectureNoteSignalCount(args.sourceTitle, args.text);
   if (lectureSignals >= 2) {
     return {
       documentType: 'lecture_notes',
@@ -617,12 +671,14 @@ function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSe
     markdownSection({
       key: 'paper-overview',
       title: `${topic} - 资料总览`,
-      summary: '论文阅读地图：研究问题、资料定位、课程关联。',
+      summary: '论文阅读地图：研究问题、资料定位、证据边界。',
       sourceRefs: refs,
       body: [
         `来源：${args.sourceTitle}`,
         `文档类型：research paper`,
-        args.courseCode ? `课程：${args.courseCode}` : '',
+        args.usageProfile === 'university_course' && args.courseCode
+          ? `课程：${args.courseCode}`
+          : '',
         '',
         '## 这份资料解决什么问题',
         overview,
@@ -670,16 +726,16 @@ function buildPaperSections(args: SourcePacketBuildArgs): SourcePacketNotebookSe
     }),
     ...(numericEvidence ? [numericEvidence] : []),
     markdownSection({
-      key: 'paper-limits-course',
-      title: `${topic} - 局限与课程关联`,
-      summary: '记录局限、假设和课程后续讲解入口。',
+      key: 'paper-limits-evidence',
+      title: `${topic} - 局限与证据边界`,
+      summary: '记录局限、假设和后续检索入口。',
       sourceRefs: refs,
       body: [
         '## 局限与后续问题',
         conclusion,
         '',
-        '## 教学边界',
-        '这份资料是课程知识来源，不是题库。不要基于它自动伪造题目；需要练习题时应由单独的生成练习流程创建，并标注为 generated_from_source。',
+        '## 使用边界',
+        '这份资料是论文型知识来源，不是题库。不要基于它自动伪造题目；需要练习题时应由单独的生成练习流程创建，并标注为 generated_from_source。',
       ],
     }),
   ];
@@ -1054,7 +1110,7 @@ export function classifySourceDocumentType(args: {
     return 'template_policy';
   }
   if (args.problemSignalCount >= 6) return 'mixed';
-  if (/^(?:slide|page)\s+\d+/im.test(args.text) || /^#{1,3}\s+\S/m.test(args.text)) {
+  if (lectureNoteSignalCount(args.sourceTitle, args.text) >= 2) {
     return 'lecture_notes';
   }
   return 'unknown';

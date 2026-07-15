@@ -1,0 +1,1355 @@
+{
+  "id": "EOaVCFY8HT",
+  "stage": {
+    "id": "EOaVCFY8HT",
+    "name": "先认识今天的例子：II",
+    "language": "zh-CN",
+    "style": "interactive",
+    "createdAt": 1779087856549,
+    "updatedAt": 1779087856549
+  },
+  "scenes": [
+    {
+      "id": "scene_-64QULSvXq",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "先认识今天的例子：II",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "iqJGjab5kZn-YOngTa_AS",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_cZZxxHSR",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>先认识今天的例子：II</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_f1N_TPy4",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 218,
+              "content": "<p style=\"font-size:18px\">• 入口：II (FTC II)</p><p style=\"font-size:18px\">• II 需要被当成一个有状态的对象，而不是一串零散值。</p><p style=\"font-size:18px\">• 先列出必须一起保存的信息，再问旧表示法能不能保护这些信息。</p><p style=\"font-size:18px\">• 下一步再决定：字段叫什么、谁能修改、怎样初始化才合法。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_QQtsZ1op",
+          "type": "spotlight",
+          "elementId": "text_cZZxxHSR"
+        },
+        {
+          "id": "action_QLRS9AOK",
+          "type": "speech",
+          "text": "今天我们要深入了解的例子是 II，具体来说，我们会讨论如何将 II 视为一个有状态的对象，而不是仅仅一串零散的值。"
+        }
+      ],
+      "createdAt": 1779087871547,
+      "updatedAt": 1779087871547,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_1",
+        "outlineTitle": "先认识今天的例子：II"
+      }
+    },
+    {
+      "id": "scene_6y3df3Jdoi",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "左/右黎曼和",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "T61uUEDxCJiRsfUF_3ljQ",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937",
+              "#4b72e8",
+              "#182033",
+              "#8a6fe8",
+              "#3f4b63"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [
+            {
+              "id": "shape_i6-hjxTB",
+              "type": "shape",
+              "left": 0,
+              "top": 0,
+              "width": 250,
+              "height": 5,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#2563eb",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_N99_8Qbk",
+              "type": "shape",
+              "left": 250,
+              "top": 0,
+              "width": 250,
+              "height": 5,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#dc2626",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_yNqbiLaU",
+              "type": "shape",
+              "left": 500,
+              "top": 0,
+              "width": 250,
+              "height": 5,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#f59e0b",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_Lyzu0ZAT",
+              "type": "shape",
+              "left": 750,
+              "top": 0,
+              "width": 250,
+              "height": 5,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#16a34a",
+              "fixedRatio": false
+            },
+            {
+              "id": "text_0TKGHZRL",
+              "type": "text",
+              "left": 64,
+              "top": 30,
+              "width": 872,
+              "height": 68,
+              "rotate": 0,
+              "content": "<p style=\"font-size:40px;line-height:44px;color:#1f2937;font-weight:820;\">左/右黎曼和</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#1f2937",
+              "textType": "header",
+              "lineHeight": 1.35
+            },
+            {
+              "id": "shape_tUwC6gQn",
+              "type": "shape",
+              "left": 64,
+              "top": 108,
+              "width": 132,
+              "height": 4,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#2563eb",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_PXD_oPHh",
+              "type": "shape",
+              "left": 202,
+              "top": 108,
+              "width": 54,
+              "height": 4,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#dc2626",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_aPV-CDmH",
+              "type": "shape",
+              "left": 262,
+              "top": 108,
+              "width": 54,
+              "height": 4,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#f59e0b",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_FMBK5X6a",
+              "type": "shape",
+              "left": 322,
+              "top": 108,
+              "width": 104,
+              "height": 4,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#16a34a",
+              "fixedRatio": false
+            },
+            {
+              "id": "line_LzQe03sw",
+              "type": "line",
+              "left": 64,
+              "top": 528,
+              "width": 1,
+              "start": [
+                0,
+                0
+              ],
+              "end": [
+                872,
+                0
+              ],
+              "style": "solid",
+              "color": "#e5e7eb",
+              "points": [
+                "",
+                ""
+              ]
+            },
+            {
+              "id": "shape_hkw92vWs",
+              "type": "shape",
+              "left": 458,
+              "top": 540,
+              "width": 8,
+              "height": 8,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z",
+              "fill": "#2563eb",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_UFr-6Bcu",
+              "type": "shape",
+              "left": 479,
+              "top": 540,
+              "width": 8,
+              "height": 8,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z",
+              "fill": "#dc2626",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_YoE0nFJS",
+              "type": "shape",
+              "left": 500,
+              "top": 540,
+              "width": 8,
+              "height": 8,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z",
+              "fill": "#f59e0b",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_0vLRKdag",
+              "type": "shape",
+              "left": 521,
+              "top": 540,
+              "width": 8,
+              "height": 8,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z",
+              "fill": "#16a34a",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_3NBjWnDq",
+              "type": "shape",
+              "left": 542,
+              "top": 540,
+              "width": 8,
+              "height": 8,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M100,0 C44.8,0 0,44.8 0,100 C0,155.2 44.8,200 100,200 C155.2,200 200,155.2 200,100 C200,44.8 155.2,0 100,0 Z",
+              "fill": "#2563eb",
+              "fixedRatio": false
+            },
+            {
+              "id": "shape_oX0kORbP",
+              "type": "shape",
+              "left": 64,
+              "top": 134,
+              "groupId": "classic_formula_focus_zHH-GNCB",
+              "width": 872,
+              "height": 138,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#f8fafc",
+              "fixedRatio": false,
+              "outline": {
+                "color": "#fed7aa",
+                "width": 1,
+                "style": "solid"
+              },
+              "shadow": {
+                "h": 0,
+                "v": 8,
+                "blur": 22,
+                "color": "rgba(15,23,42,0.08)"
+              }
+            },
+            {
+              "id": "shape_L2BmVj7T",
+              "type": "shape",
+              "left": 64,
+              "top": 152,
+              "width": 4,
+              "height": 102,
+              "rotate": 0,
+              "viewBox": [
+                200,
+                200
+              ],
+              "path": "M 0 0 L 200 0 L 200 200 L 0 200 Z",
+              "fill": "#2563eb",
+              "fixedRatio": false
+            },
+            {
+              "id": "text_2WXl93CG",
+              "type": "text",
+              "left": 88,
+              "top": 152,
+              "groupId": "classic_formula_focus_zHH-GNCB",
+              "width": 160,
+              "height": 46,
+              "rotate": 0,
+              "content": "<p style=\"margin:0;font-size:15px;line-height:20px;color:#2563eb;font-weight:820;\">核心公式</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#2563eb",
+              "textType": "item",
+              "lineHeight": 1.35
+            },
+            {
+              "id": "text_DTXEomlC",
+              "type": "text",
+              "left": 606,
+              "top": 152,
+              "groupId": "classic_formula_focus_zHH-GNCB",
+              "width": 306,
+              "height": 44,
+              "rotate": 0,
+              "content": "<p style=\"margin:0;font-size:11px;line-height:16px;color:#6b7280;text-align:right;\">把函数看作一种关系时的图像</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#6b7280",
+              "textType": "notes",
+              "lineHeight": 1.35
+            },
+            {
+              "id": "latex_MbustIK7",
+              "type": "latex",
+              "left": 110,
+              "top": 188,
+              "groupId": "classic_formula_focus_zHH-GNCB",
+              "width": 780,
+              "height": 72,
+              "rotate": 0,
+              "latex": "L_n = \\sum_{i=0}^{n-1} f(x_i) \\Delta x",
+              "html": "<span class=\"math-engine-display\" data-syntara-math=\"display\" style=\"display:block;text-align:center;margin:0.2em 0;\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.8333em;vertical-align:-0.15em;\"></span><span class=\"mord\"><span class=\"mord mathnormal\">L</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.1514em;\"><span style=\"top:-2.55em;margin-left:0em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">n</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.15em;\"><span></span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">=</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:3.0788em;vertical-align:-1.2777em;\"></span><span class=\"mop op-limits\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.8011em;\"><span style=\"top:-1.8723em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\">i</span><span class=\"mrel mtight\">=</span><span class=\"mord mtight\">0</span></span></span></span><span style=\"top:-3.05em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span><span class=\"mop op-symbol large-op\">∑</span></span></span><span style=\"top:-4.3em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\">n</span><span class=\"mbin mtight\">−</span><span class=\"mord mtight\">1</span></span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.2777em;\"><span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mopen\">(</span><span class=\"mord\"><span class=\"mord mathnormal\">x</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.3117em;\"><span style=\"top:-2.55em;margin-left:0em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">i</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.15em;\"><span></span></span></span></span></span></span><span class=\"mclose\">)</span><span class=\"mord\">Δ</span><span class=\"mord mathnormal\">x</span></span></span></span></span></span>",
+              "align": "center",
+              "color": "#1f2937"
+            },
+            {
+              "id": "text_LlkfKHeN",
+              "type": "text",
+              "left": 64,
+              "top": 306,
+              "width": 424,
+              "height": 204,
+              "rotate": 0,
+              "content": "<p style=\"margin:0 0 10px 0;font-size:20px;line-height:24px;color:#2563eb;font-weight:780;\">公式读法</p><p style=\"margin:0 0 5px 0;font-size:12px;line-height:16px;color:#374151;\">先把函数当作“定义域、陪域、唯一输出规则”的数据结构来读。</p><p style=\"margin:0 0 5px 0;font-size:12px;line-height:16px;color:#374151;\"><span class=\"math-engine-inline\" data-syntara-math=\"inline\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:1em;vertical-align:-0.25em;\"></span><span class=\"mord\">Γ</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mclose\">)</span></span></span></span></span>：把函数写成所有输入输出配对的集合。</p><p style=\"margin:0 0 5px 0;font-size:12px;line-height:16px;color:#374151;\"><span class=\"math-engine-inline\" data-syntara-math=\"inline\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:1em;vertical-align:-0.25em;\"></span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">a</span><span class=\"mpunct\">,</span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">a</span><span class=\"mclose\">))</span></span></span></span></span>：每个输入和自己的输出配成一对。</p><p style=\"margin:0 0 5px 0;font-size:12px;line-height:16px;color:#374151;\"><span class=\"math-engine-inline\" data-syntara-math=\"inline\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.7719em;vertical-align:-0.136em;\"></span><span class=\"mrel\">⊆</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:0.7667em;vertical-align:-0.0833em;\"></span><span class=\"mord mathnormal\">A</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span><span class=\"mbin\">×</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:0.6833em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.05017em;\">B</span></span></span></span></span>：所有配对都落在定义域与</p><p style=\"margin:0 0 5px 0;font-size:12px;line-height:16px;color:#374151;\">陪域的笛卡尔积中。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#374151",
+              "textType": "item",
+              "lineHeight": 1.35,
+              "fill": "#eff6ff",
+              "outline": {
+                "color": "#bfdbfe",
+                "width": 1,
+                "style": "solid"
+              },
+              "shadow": {
+                "h": 0,
+                "v": 6,
+                "blur": 18,
+                "color": "rgba(15,23,42,0.08)"
+              }
+            },
+            {
+              "id": "text_CGwgPMJs",
+              "type": "text",
+              "left": 512,
+              "top": 306,
+              "width": 424,
+              "height": 204,
+              "rotate": 0,
+              "content": "<p style=\"margin:0 0 10px 0;font-size:20px;line-height:24px;color:#f59e0b;font-weight:780;\">函数判定</p><p style=\"margin:0 0 5px 0;font-size:13px;line-height:18px;color:#374151;\"><span style=\"color:#f59e0b;font-weight:800;\">1.</span> 存在性：每个 <span class=\"math-engine-inline\" data-syntara-math=\"inline\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:0.5782em;vertical-align:-0.0391em;\"></span><span class=\"mord mathnormal\">a</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">∈</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:0.6833em;\"></span><span class=\"mord mathnormal\">A</span></span></span></span></span> 都必须有输出。</p><p style=\"margin:0 0 5px 0;font-size:13px;line-height:18px;color:#374151;\"><span style=\"color:#f59e0b;font-weight:800;\">2.</span> 唯一性：同一个输入不能配到两个不同输出。</p><p style=\"margin:0 0 5px 0;font-size:13px;line-height:18px;color:#374151;\"><span style=\"color:#f59e0b;font-weight:800;\">3.</span> 陪域是允许输出的空间，值域是实际出现的输出。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#374151",
+              "textType": "item",
+              "lineHeight": 1.35,
+              "fill": "#f8fafc",
+              "outline": {
+                "color": "#fed7aa",
+                "width": 1,
+                "style": "solid"
+              },
+              "shadow": {
+                "h": 0,
+                "v": 6,
+                "blur": 18,
+                "color": "rgba(15,23,42,0.08)"
+              }
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "classic_business",
+          "disciplineStyle": "general",
+          "teachingFlow": "definition_to_example",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "formula_focus",
+          "layoutTemplate": "formula_focus",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "preserveFullProblemStatement": false,
+          "archetype": "definition",
+          "title": "左/右黎曼和",
+          "blocks": [
+            {
+              "type": "equation",
+              "latex": "L_n = \\sum_{i=0}^{n-1} f(x_i) \\Delta x",
+              "display": true
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "左端黎曼和",
+              "text": "左端黎曼和的公式，`L_n` 表示用左端点计算得到的黎曼和。"
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "右端黎曼和",
+              "text": "右端黎曼和的公式，$R_n = \\sum_{i=1^{n f(x_i) \\Delta x$ 表示用右端点计算得到的黎曼和。"
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "实例选择",
+              "text": "在积分区间内，选择对应的左端点或者右端点，影响黎曼和的结果。"
+            },
+            {
+              "type": "callout",
+              "tone": "success",
+              "title": "避免错误状态",
+              "text": "理解黎曼和的计算能够帮助识别可能出现的常见计算错误。"
+            }
+          ]
+        },
+        "semanticRenderVersion": 67,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [
+        {
+          "id": "action_nrPHMixi",
+          "type": "spotlight",
+          "elementId": "header"
+        },
+        {
+          "id": "action_H4HE9fBS",
+          "type": "speech",
+          "text": "今天我们将讨论左端和右端黎曼和的概念，以及它们如何通过公式来计算。首先，我们来关注左端黎曼和，它的公式是怎样的呢？"
+        },
+        {
+          "id": "action_GCJ7Unsm",
+          "type": "spotlight",
+          "elementId": "block-section-0-block-1"
+        },
+        {
+          "id": "action_PgkJvYsD",
+          "type": "speech",
+          "text": "左端黎曼和的公式是`L_n = \\sum_{i=0}^{n-1} f(x_i) \\Delta x`。这里的`L_n`表示我们用左端点来计算黎曼和的结果。要记住，选择哪个点会影响我们的计算结果。接下来，我们来看右端黎曼和的公式。"
+        },
+        {
+          "id": "action_VzWpO_NV",
+          "type": "spotlight",
+          "elementId": "block-section-0-block-2"
+        },
+        {
+          "id": "action_jdiup6dc",
+          "type": "speech",
+          "text": "右端黎曼和的公式同样重要，它的表示为`R_n = \\sum_{i=1}^{n} f(x_i) \\Delta x`。在这个公式中，`R_n`是通过使用右端点来计算得出的黎曼和。看，这两个公式虽然相似，但选择的点不同，结果也会有所不同。"
+        },
+        {
+          "id": "action_hAP8_4k6",
+          "type": "spotlight",
+          "elementId": "block-section-0-block-3"
+        },
+        {
+          "id": "action_II-sIL7X",
+          "type": "speech",
+          "text": "通过一个实例，我们可以更好地理解如何选择左右端点。假设我们在某个积分区间内选择左端点，那么计算结果就会依赖于这些选定的点。反之，若选取右端点又会得到不同的求和，这一点非常关键。"
+        },
+        {
+          "id": "action_Oy6GX3N4",
+          "type": "spotlight",
+          "elementId": "block-section-0-block-4"
+        },
+        {
+          "id": "action_z9GaZWnr",
+          "type": "speech",
+          "text": "最后，要理解黎曼和的计算，不仅帮助我们得到结果，同时也能识别常见的计算错误。确保我们意识到可能出现的误区，可以减少失误，提高我们的学习效果。"
+        }
+      ],
+      "createdAt": 1779087888586,
+      "updatedAt": 1779087888586,
+      "generationDiagnostics": {
+        "pipeline": "semantic",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_2",
+        "outlineTitle": "左/右黎曼和"
+      }
+    },
+    {
+      "id": "scene_x8Klmab2qw",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "黎曼和的估计",
+      "order": 3,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "Ydm3JrfM7Qi5VgwJlz1Yl",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_VNRWJSrP",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>黎曼和的估计</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_DcUC6DhI",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 370,
+              "content": "<p style=\"font-size:18px\">• 函数递增时，左端和右端黎曼和的估计特点</p><p style=\"font-size:18px\">• 函数递减时，左端和右端黎曼和的估计特点</p><p style=\"font-size:18px\">• 理解超估计和低估的概念</p><p style=\"font-size:18px\">• II (FTC II)</p><p style=\"font-size:18px\">• 这个概念让哪些东西有了名字、边界或归属？</p><p style=\"font-size:18px\">• 先说清概念负责解决的问题，再记术语。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_kXhSBHzR",
+          "type": "spotlight",
+          "elementId": "text_VNRWJSrP"
+        },
+        {
+          "id": "action_QAOnl51D",
+          "type": "speech",
+          "text": "今天，我们要探讨黎曼和的估计，重点分析在不同函数情况下的误差特点。首先，黎曼和是用来近似计算定积分的一种方法，但它的估计误差会随着函数性质的不同而变化。"
+        },
+        {
+          "id": "action_bk2L-y1i",
+          "type": "spotlight",
+          "elementId": "text_DcUC6DhI"
+        },
+        {
+          "id": "action_Nz2sGJj4",
+          "type": "speech",
+          "text": "让我们看一下当函数递增时，左端和右端黎曼和的估计特点。如果函数是递增的，左端黎曼和会低于真实的积分值，而右端黎曼和则会高于真实的积分值。这是因为在递增函数中，每一个新加入的矩形都比前一个矩形的高度高，所以会导致这种错误。"
+        },
+        {
+          "id": "action_ExeR6FC-",
+          "type": "spotlight",
+          "elementId": "text_DcUC6DhI"
+        },
+        {
+          "id": "action_RqnHOQnW",
+          "type": "speech",
+          "text": "相反，当函数递减时，左端黎曼和会高于真实的积分值，而右端黎曼和会低于真实的积值。这是因为递减函数的性质，使得左端矩形总是比右端矩形略高。因此，我们可以说，递增和递减函数的黎曼和误差是相反的。"
+        },
+        {
+          "id": "action_218x6Lb0",
+          "type": "speech",
+          "text": "理解怎样判断这些估计值的高低，对于掌握黎曼和的应用是很重要的。当我们知道了一个函数是递增还是递减，我们就能够确定我们的黎曼和是超估计还是低估。"
+        },
+        {
+          "id": "action_x34HRBp8",
+          "type": "spotlight",
+          "elementId": "text_VNRWJSrP"
+        },
+        {
+          "id": "action_3vOrk1Ys",
+          "type": "speech",
+          "text": "在这一节的学习中，超估计和低估的概念将帮助我们更好地理解如何使用黎曼和来近似计算积分。在实际应用中，我们可以判断一个函数在某一段时间是递增还是递减，进而选择合适的黎曼和计算形式来获得更精确的估计。"
+        }
+      ],
+      "createdAt": 1779087905706,
+      "updatedAt": 1779087905706,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_3",
+        "outlineTitle": "黎曼和的估计"
+      }
+    },
+    {
+      "id": "scene_FLlTsHdeHn",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "定积分的定义",
+      "order": 4,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "G5HLpXlvwVp2Z0K0QJPmy",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_YNRkGWda",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>定积分的定义</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_QM3Fs4Eg",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 209,
+              "content": "<p style=\"font-size:18px\">• 定积分的数学定义</p><p style=\"font-size:18px\">• 关联黎曼和和积分极限</p><p style=\"font-size:18px\">• 用公式展示定积分的限制</p><p style=\"font-size:18px\">• II (FTC II)</p><p style=\"font-size:18px\">• 这个概念让哪些东西有了名字、边界或归属？</p><p style=\"font-size:18px\">• 先说清概念负责解决的问题，再记术语。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_E3VpT1O-",
+          "type": "spotlight",
+          "elementId": "text_YNRkGWda"
+        },
+        {
+          "id": "action_NEhj3tDB",
+          "type": "speech",
+          "text": "我们今天要讨论的主题是定积分的定义。定积分是微积分中的一个重要概念，它帮助我们理解如何测量曲线下的面积。"
+        }
+      ],
+      "createdAt": 1779087921525,
+      "updatedAt": 1779087921525,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_4",
+        "outlineTitle": "定积分的定义"
+      }
+    },
+    {
+      "id": "scene_e09fK_lHUH",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "定积分的性质",
+      "order": 5,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "eI_g4Rx0csTt84uq4bzKZ",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_GFTlAqWc",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>定积分的性质</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_7e8JkVn_",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 210,
+              "content": "<p style=\"font-size:18px\">• 探讨定积分的线性性质</p><p style=\"font-size:18px\">• 恒定函数的定积分计算</p><p style=\"font-size:18px\">• 定积分的加法和减法性质</p><p style=\"font-size:18px\">• II (FTC II)</p><p style=\"font-size:18px\">• 这个概念让哪些东西有了名字、边界或归属？</p><p style=\"font-size:18px\">• 先说清概念负责解决的问题，再记术语。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_47wZDrNN",
+          "type": "spotlight",
+          "elementId": "text_GFTlAqWc"
+        },
+        {
+          "id": "action_JKroazL1",
+          "type": "speech",
+          "text": "今天，我们将深入探讨定积分的性质，这是微积分中的一个重要主题。通过了解这些性质，我们能够更好地理解定积分的运算和应用。"
+        },
+        {
+          "id": "action_CjODF5vV",
+          "type": "spotlight",
+          "elementId": "text_7e8JkVn_"
+        },
+        {
+          "id": "action_mUc9QQXo",
+          "type": "speech",
+          "text": "首先，我们来看看定积分的线性性质。定积分的线性性质意味着，如果我们有两个常数 a 和 b，那么对于任何可积函数 f，\\(对af 加 bg关于x积分 等于 a 对f关于x积分 加 b 对g关于x积分 \\)。这让我们在处理多个函数的情况下，可以灵活地进行计算。"
+        },
+        {
+          "id": "action_eWp4ONK3",
+          "type": "spotlight",
+          "elementId": "text_7e8JkVn_"
+        },
+        {
+          "id": "action_GzDQqTAt",
+          "type": "speech",
+          "text": "接下来，我们讨论恒定函数的定积分计算。假设有一个恒定函数 c，那么它的定积分计算十分简单：\\(\\int c, dx 等于 cx 加 C \\)，其中 C 是积分常数。这让我们能够很容易地找到恒定值的定积分。"
+        },
+        {
+          "id": "action_00pZCTgi",
+          "type": "spotlight",
+          "elementId": "text_7e8JkVn_"
+        },
+        {
+          "id": "action_PHU6-AuQ",
+          "type": "speech",
+          "text": "然后，我们来关注定积分的加法和减法性质。定积分不仅可以加，也可以减，这使得我们在计算复杂积分问题时，能够将其分解为简单的部分处理。这种性质对于解决实际问题非常有帮助。"
+        },
+        {
+          "id": "action_futKI2XR",
+          "type": "spotlight",
+          "elementId": "text_7e8JkVn_"
+        },
+        {
+          "id": "action_8Z29CBuq",
+          "type": "speech",
+          "text": "最后，我们要提到第 II 积分基本定理（FTC II）。它表明，如果 F 是 f 的一个不定积分，那么\\(\\int下标a的b次方 f(x), dx 等于 F(b) - F(a) \\)，这为我们提供了一个强有力的工具来计算定积分。通过理解这些性质，我们可以更加自信地处理定积分相关的问题。"
+        }
+      ],
+      "createdAt": 1779087937746,
+      "updatedAt": 1779087937746,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_5",
+        "outlineTitle": "定积分的性质"
+      }
+    },
+    {
+      "id": "scene_SIqJa_5_eF",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "例题演示",
+      "order": 6,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "Sbdawi4XlALcuv8-PdRma",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_yFFEYtuK",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>例题演示</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_pAZsx_c3",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 240,
+              "content": "<p style=\"font-size:18px\">• 给出待求解的定积分例题</p><p style=\"font-size:18px\">• 逐步演示如何应用定积分的方法</p><p style=\"font-size:18px\">• 解决过程中可能遇到的共同错误</p><p style=\"font-size:18px\">• II (FTC II)</p><p style=\"font-size:18px\">• 这个表示法能不能阻止我写出错误状态？</p><p style=\"font-size:18px\">• 能存数据不等于表示得好；还要看它能不能保护含义和规则。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_P64RJgIZ",
+          "type": "spotlight",
+          "elementId": "text_yFFEYtuK"
+        },
+        {
+          "id": "action_-XypAG-P",
+          "type": "speech",
+          "text": "今天，我们将在这里通过一个具体的定积分例题来巩固我们之前学习的概念。这个过程不仅能帮助我们解决类似问题，也能让我们了解在计算过程中可能会遇到的一些共性错误。"
+        },
+        {
+          "id": "action_wrwGFfKI",
+          "type": "spotlight",
+          "elementId": "text_pAZsx_c3"
+        },
+        {
+          "id": "action_aFqa466g",
+          "type": "speech",
+          "text": "首先，我们将开始这个例题的求解。在我们的例题中，待求解的定积分是什么呢？让我们仔细查看它，并思考如何一步一步推进。"
+        },
+        {
+          "id": "action_OVV0BEo1",
+          "type": "spotlight",
+          "elementId": "text_pAZsx_c3"
+        },
+        {
+          "id": "action_Z8n0iso8",
+          "type": "speech",
+          "text": "接下来，应用定积分的方法，大家可以注意到常见的步骤，比如确定积分的上下限，选择适当的被积函数。这些步骤需要我们认真对待，因为它们构成了求解的基础。"
+        },
+        {
+          "id": "action_FrpNREO_",
+          "type": "spotlight",
+          "elementId": "text_pAZsx_c3"
+        },
+        {
+          "id": "action_m0JjfIAO",
+          "type": "speech",
+          "text": "在我们的计算过程中，有哪些错误是我们常常会遇到的呢？例如，有时学生会混淆积分类别或搞错上下限。了解这些常见错误后，我们可以更好地避免它们。"
+        },
+        {
+          "id": "action_GPIJaeVH",
+          "type": "speech",
+          "text": "最后，大家要记住，一个好的表示法不仅能存储数据，更重要的是要保护它的含义和规则。下次在面对新的问题时，可以用我们的判断方法来检查自己是否理解，无论是选择积分方法还是评估函数。"
+        },
+        {
+          "id": "action_2frQ3BiL",
+          "type": "speech",
+          "text": "让我们开始吧，准备好一起算出这个定积分的正确值！"
+        }
+      ],
+      "createdAt": 1779087965657,
+      "updatedAt": 1779087965657,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_6",
+        "outlineTitle": "例题演示"
+      }
+    },
+    {
+      "id": "scene_HXw4w1Y3nP",
+      "stageId": "EOaVCFY8HT",
+      "type": "quiz",
+      "title": "知识检查",
+      "order": 7,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "short_answer",
+            "question": "请简述黎曼和的定义及其与定积分的关系。",
+            "commentPrompt": "评分标准：（1）黎曼和定义 - 50% （2）与定积分关系 - 50%",
+            "analysis": "一个好的回答应包括：1）黎曼和的含义，通常是对区间的划分和函数值的乘积的求和。2）黎曼和是定积分的基础，随着区间划分的趋于无限细，黎曼和会收敛于定积分的值。可以阐述示例以增加清晰度。",
+            "points": 20,
+            "hasAnswer": false
+          },
+          {
+            "id": "q2",
+            "type": "multiple_choice",
+            "question": "以下关于定积分的说法，哪些是正确的？（可多选）",
+            "options": [
+              {
+                "value": "A",
+                "label": "定积分可以用于计算曲线下的面积"
+              },
+              {
+                "value": "B",
+                "label": "定积分等于由于连续性导致的不定积分的绝对值"
+              },
+              {
+                "value": "C",
+                "label": "如函数在区间内有极值，定积分会受到影响"
+              },
+              {
+                "value": "D",
+                "label": "定积分的符号取决于区间的上下限"
+              }
+            ],
+            "answer": "A",
+            "analysis": "定积分能够计算曲线下方的面积，这是其基本用途。而选项B是错误的，因为定积分与不定积分之间的关系并不直接通过绝对值来表达。选项C和D均有效，极值会影响定积分的计算，且定积分的符号由上下限决定。",
+            "points": 15,
+            "correctAnswer": "A",
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_XQ4QTbqZ",
+          "type": "speech",
+          "text": "大家好！现在我们将进行一个知识检查，看看你们对黎曼和及定积分的理解如何。"
+        },
+        {
+          "id": "action_1ePM2P5x",
+          "type": "speech",
+          "text": "请认真阅读每个问题，思考你所学的知识。"
+        },
+        {
+          "id": "action_IfbXSA3L",
+          "type": "speech",
+          "text": "第一个问题请简述黎曼和的定义，以及它与定积分的关系。这一概念很重要，很多同学可能会混淆它的具体定义。"
+        },
+        {
+          "id": "action_3Rk2P-rd",
+          "type": "speech",
+          "text": "接下来的问题是关于定积分的多选题。注意，这里可能有多个正确选项，想清楚后再选择。"
+        }
+      ],
+      "createdAt": 1779087982119,
+      "updatedAt": 1779087982119,
+      "generationDiagnostics": {
+        "pipeline": "quiz",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_7",
+        "outlineTitle": "知识检查"
+      }
+    },
+    {
+      "id": "scene_UrR-juQW4F",
+      "stageId": "EOaVCFY8HT",
+      "type": "slide",
+      "title": "课程总结",
+      "order": 8,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "ERboywZsxAnG6Neq_2CY5",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_yKUg7EOK",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>课程总结</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_BXwl38iD",
+              "type": "text",
+              "left": 60,
+              "top": 130,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:24px\">回顾今天学习的重点内容，为下一次课程做铺垫。</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_8iLXj_do",
+              "type": "text",
+              "left": 60,
+              "top": 220,
+              "width": 880,
+              "height": 220,
+              "content": "<p style=\"font-size:18px\">• 概述定积分和黎曼和的核心概念</p><p style=\"font-size:18px\">• 总结增强面积近似的技巧</p><p style=\"font-size:18px\">• II (FTC II)</p><p style=\"font-size:18px\">• 下次遇到类似问题，我先问哪三个问题？</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_lT14Dhq4",
+          "type": "spotlight",
+          "elementId": "text_yKUg7EOK"
+        },
+        {
+          "id": "action_25z4puHB",
+          "type": "speech",
+          "text": "今天的课程总结，我们将回顾重要的学习内容，帮助大家更好地准备下次课。首先，我们讨论了定积分和黎曼和的核心概念。"
+        },
+        {
+          "id": "action_4zn-vkTh",
+          "type": "spotlight",
+          "elementId": "text_BXwl38iD"
+        },
+        {
+          "id": "action_fHxGHG0i",
+          "type": "speech",
+          "text": "定积分是一种求曲线下方区域面积的方法，而黎曼和则是通过将一个区域分割成许多小段，来近似这些面积的总和，这两个概念是我们今后理解和应用微积分的基础。"
+        },
+        {
+          "id": "action_9HqYRDa8",
+          "type": "spotlight",
+          "elementId": "text_8iLXj_do"
+        },
+        {
+          "id": "action_zknze7ci",
+          "type": "speech",
+          "text": "接下来，我们总结了增强面积近似的技巧，例如如何选择合适的分割点以及使用更高的分辨率来提高精度。这些技巧不仅适用于定积分，还可以帮助我们理解更多相关应用。"
+        },
+        {
+          "id": "action_BvGESlQy",
+          "type": "spotlight",
+          "elementId": "text_8iLXj_do"
+        },
+        {
+          "id": "action__3X4Qk-a",
+          "type": "speech",
+          "text": "我们还学习了微积分基本定理第二部分（FTC II），它建立了导数和积分之间的关系，这一理论是微积分中最重要的成果之一。理解这一点将极大帮助你解决未来的问题。"
+        },
+        {
+          "id": "action_78uA7nO4",
+          "type": "spotlight",
+          "elementId": "text_8iLXj_do"
+        },
+        {
+          "id": "action_Up8f2U97",
+          "type": "speech",
+          "text": "最后，下次当我们遇到类似的问题时，请记得先问自己以下三个问题：1. 这个问题在问什么？2. 我们有什么已知条件？3. 我该如何开始解答？通过这样的思考方法，能让我们更加清晰地分析问题。"
+        }
+      ],
+      "createdAt": 1779088009585,
+      "updatedAt": 1779088009585,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_8",
+        "outlineTitle": "课程总结"
+      }
+    }
+  ],
+  "createdAt": "2026-05-18T07:06:49.592Z"
+}

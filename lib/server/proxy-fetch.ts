@@ -13,7 +13,12 @@
  *        const res = await proxyFetch('https://api.openai.com/v1/...', { ... });
  */
 
-import { ProxyAgent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from 'undici';
+import {
+  ProxyAgent,
+  fetch as undiciFetch,
+  request as undiciRequest,
+  type RequestInit as UndiciRequestInit,
+} from 'undici';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ProxyFetch');
@@ -49,13 +54,16 @@ function getProxyAgent(): ProxyAgent | undefined {
  * Drop-in replacement for fetch() that respects proxy env vars.
  * Falls back to global fetch when no proxy is configured.
  */
-export async function proxyFetch(input: string | URL, init?: RequestInit): Promise<Response> {
+export async function proxyFetch(
+  input: string | URL,
+  init?: RequestInit | UndiciRequestInit,
+): Promise<Response> {
   const agent = getProxyAgent();
   const url = typeof input === 'string' ? input : input.toString();
 
   if (!agent) {
     log.info('No proxy configured, using direct fetch for:', url.slice(0, 80));
-    return fetch(input, init);
+    return fetch(input, init as RequestInit | undefined);
   }
 
   log.info('Using proxy', cachedProxyUrl, 'for:', url.slice(0, 80));
@@ -67,4 +75,26 @@ export async function proxyFetch(input: string | URL, init?: RequestInit): Promi
 
   // undici's Response is compatible with the global Response
   return res as unknown as Response;
+}
+
+/**
+ * Lower-level proxy-aware request for uploads that need an explicit
+ * Content-Length and Undici response streaming controls.
+ */
+export async function proxyRequest(
+  input: string | URL,
+  init: NonNullable<Parameters<typeof undiciRequest>[1]>,
+): Promise<Awaited<ReturnType<typeof undiciRequest>>> {
+  const agent = getProxyAgent();
+  const url = typeof input === 'string' ? input : input.toString();
+  log.info(
+    agent ? 'Using proxy request' : 'Using direct request',
+    agent ? cachedProxyUrl : '',
+    'for:',
+    url.slice(0, 80),
+  );
+  return undiciRequest(input, {
+    ...init,
+    ...(agent ? { dispatcher: agent } : {}),
+  });
 }

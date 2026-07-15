@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 
 function AuthSessionSync() {
@@ -29,6 +30,11 @@ function AuthSessionSync() {
 }
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/test/memory-')) {
+    return <>{children}</>;
+  }
+
   return (
     <SessionProvider>
       <AuthSessionSync />

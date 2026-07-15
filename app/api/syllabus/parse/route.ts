@@ -1,11 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createOpenAI } from '@ai-sdk/openai';
-import type { LanguageModel } from 'ai';
 import { z } from 'zod';
-import { jsonrepair } from 'jsonrepair';
 import { safeRoute } from '@/lib/server/json-error-response';
 import { runWithRequestContext } from '@/lib/server/request-context';
-import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
+import { resolveOpenAIResponsesModelFromHeaders } from '@/lib/server/resolve-model';
 import { callLLM } from '@/lib/ai/llm';
 
 export const runtime = 'nodejs';
@@ -23,20 +21,18 @@ const syllabusEventKindSchema = z.enum([
 
 const syllabusParseSchema = z.object({
   courseTitle: z.string().optional().nullable(),
-  events: z
-    .array(
-      z.object({
-        title: z.string().min(1).max(160),
-        kind: syllabusEventKindSchema,
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        week: z.string().optional().nullable(),
-        sourceColumn: z.string().optional().nullable(),
-        rawText: z.string().optional().nullable(),
-        confidence: z.number().min(0).max(1).optional().nullable(),
-      }),
-    )
-    .max(120),
-  warnings: z.array(z.string().max(240)).optional().default([]),
+  events: z.array(
+    z.object({
+      title: z.string().min(1),
+      kind: syllabusEventKindSchema,
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      week: z.string().optional().nullable(),
+      sourceColumn: z.string().optional().nullable(),
+      rawText: z.string().optional().nullable(),
+      confidence: z.number().min(0).max(1).optional().nullable(),
+    }),
+  ),
+  warnings: z.array(z.string()),
 });
 
 function isPdfFile(file: File) {
@@ -44,23 +40,7 @@ function isPdfFile(file: File) {
 }
 
 function extractJsonObject(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1]?.trim() || trimmed;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  const jsonText = start >= 0 && end > start ? candidate.slice(start, end + 1) : candidate;
-  return JSON.parse(jsonrepair(jsonText));
-}
-
-function responseWarningForEventCount(count: number) {
-  if (count === 0) {
-    return '没有识别到可写入日历的作业、考试或课程进度。';
-  }
-  if (count < 3) {
-    return `只识别到 ${count} 个事项，建议补充关键日期或重新上传更清晰的 syllabus。`;
-  }
-  return null;
+  return JSON.parse(text.trim());
 }
 
 function syllabusExtractionPrompt(args: {
@@ -130,21 +110,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const config = await getSystemLLMRuntimeConfig();
-        if (!config.apiKey) {
-          return NextResponse.json(
-            { error: '系统 OpenAI API Key 尚未配置，无法用 AI 读取 PDF。' },
-            { status: 500 },
-          );
-        }
-
         const arrayBuffer = await file.arrayBuffer();
         const pdfBuffer = Buffer.from(arrayBuffer);
-        const openai = createOpenAI({
-          apiKey: config.apiKey,
-          baseURL: config.baseUrl,
+        const { model, modelString } = await resolveOpenAIResponsesModelFromHeaders(request, {
+          allowOpenAIModelOverride: true,
         });
-        const model = openai.responses(config.modelId) as unknown as LanguageModel;
+        const modelId = modelString.replace(/^openai:/, '');
 
         const result = await callLLM(
           {
@@ -173,33 +144,25 @@ export async function POST(request: NextRequest) {
                 ],
               },
             ],
+            maxRetries: 0,
           },
           'syllabus-pdf-file-extraction',
-          {
-            retries: 1,
-            validate: (text) => {
-              try {
-                const parsed = syllabusParseSchema.safeParse(extractJsonObject(text));
-                return parsed.success;
-              } catch {
-                return false;
-              }
-            },
-          },
         );
 
         const parsed = syllabusParseSchema.parse(extractJsonObject(result.text));
-        const countWarning = responseWarningForEventCount(parsed.events.length);
-        const warnings = [...parsed.warnings];
-        if (countWarning && !warnings.includes(countWarning)) warnings.unshift(countWarning);
 
+        const savedAt = Date.now();
+        const events = parsed.events.map((event, index) => ({
+          ...event,
+          id: `syllabus-${savedAt}-${index}-${randomUUID().slice(0, 8)}`,
+        }));
         return NextResponse.json({
           success: true,
           parser: 'openai-responses-input-file',
-          modelId: config.modelId,
+          modelId,
           courseTitle: parsed.courseTitle || null,
-          events: parsed.events,
-          warnings,
+          events,
+          warnings: parsed.warnings,
         });
       }),
     {

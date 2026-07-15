@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Syntara Public API
+  version: 1.0.0
+  description: Public API for the first batch of Syntara learning workflows.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/v1:
+    get:
+      operationId: listCapabilities
+      responses:
+        '200':
+          description: Capability list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /api/v1/cheat-sheets:
+    post:
+      operationId: createCheatSheet
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                sourceTitle: { type: string }
+                language: { type: string, enum: [zh-CN, en-US], default: zh-CN }
+                usageProfile:
+                  type: string
+                  enum: [university_course, research, daily_use]
+                coverTitle: { type: string }
+                coverCourseLabel: { type: string }
+                coverFocus: { type: string }
+      responses:
+        '200':
+          description: JSON result, or image bytes when Accept is image/*
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+            image/png:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/structured-notes:
+    post:
+      operationId: createStructuredNote
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                sourceTitle: { type: string }
+                language: { type: string, enum: [zh-CN, en-US], default: zh-CN }
+                usageProfile:
+                  type: string
+                  enum: [university_course, research, daily_use]
+      responses:
+        '200':
+          description: Structured note
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/calendars/import:
+    post:
+      operationId: importCalendar
+      parameters:
+        - in: query
+          name: timezone
+          schema: { type: string, default: Asia/Shanghai }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [pdf]
+              properties:
+                pdf: { type: string, format: binary }
+                courseName: { type: string }
+                courseDescription: { type: string }
+      responses:
+        '200':
+          description: Caller-managed calendar snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/calendars/commands:
+    post:
+      operationId: runCalendarCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CalendarCommandRequest' }
+      responses:
+        '200':
+          description: Search result, confirmation proposal, or updated calendar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '409':
+          description: Ambiguous target
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/question-sets:
+    post:
+      operationId: createQuestionSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [course_code, source_case, topic, requested_count]
+              properties:
+                course_code: { type: string, enum: [MAT136, CSC148] }
+                source_case:
+                  type: string
+                  enum: [empty_no_notes, empty_with_notes, sufficient_bank, partial_no_notes, partial_with_notes]
+                topic: { type: string }
+                requested_count: { type: integer, minimum: 1, maximum: 12 }
+                partial_bank_size: { type: integer, minimum: 0, maximum: 11 }
+                notebook_content: { type: string }
+      responses:
+        '200':
+          description: Routed and validated question set
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/explanations/text:
+    post:
+      operationId: createTextExplanation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExplanationRequest' }
+      responses:
+        '200':
+          description: Markdown explanation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/explanations/slides:
+    post:
+      operationId: createSlideExplanation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ExplanationRequest'
+                - type: object
+                  properties:
+                    kind: false
+      responses:
+        '200':
+          description: One or two slide pages with SVG data URLs and playback actions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/review-plans:
+    post:
+      operationId: createReviewPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_type, target_id, query]
+              properties:
+                target_type: { type: string, enum: [course, notebook] }
+                target_id: { type: string }
+                query: { type: string }
+                conversation_id: { type: [string, 'null'] }
+                schedule_events:
+                  type: array
+                  items: { $ref: '#/components/schemas/CalendarEvent' }
+                constraints:
+                  type: object
+                  properties:
+                    total_minutes: { type: integer, minimum: 15, maximum: 240 }
+                    question_count: { type: integer, minimum: 1, maximum: 20 }
+                    max_tasks: { type: integer, minimum: 1, maximum: 8 }
+                    today: { type: string, format: date }
+      responses:
+        '200':
+          description: Evidence-based review plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Syntara API Key
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    SuccessEnvelope:
+      type: object
+      required: [success, request_id, data]
+      properties:
+        success: { type: boolean, const: true }
+        request_id: { type: string }
+        data: { type: object, additionalProperties: true }
+    ErrorEnvelope:
+      type: object
+      required: [success, request_id, error]
+      properties:
+        success: { type: boolean, const: false }
+        request_id: { type: string }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+    CalendarEvent:
+      type: object
+      required: [id, title, kind, date]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        kind: { type: string, enum: [assignment, exam, progress, tutorial, holiday, other] }
+        date: { type: string, format: date }
+        start:
+          type: string
+          description: ISO 8601 date-time or local time supplied by the calendar proposal.
+        source_name: { type: string }
+        created_at: { type: integer }
+        origin: { type: string }
+        duration_minutes: { type: integer }
+        status: { type: string, enum: [planned, done, skipped] }
+        raw_text: { type: [string, 'null'] }
+    Calendar:
+      type: object
+      required: [events]
+      properties:
+        id: { type: string }
+        timezone: { type: string, default: Asia/Shanghai }
+        events:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/CalendarEvent' }
+    CalendarProposal:
+      type: object
+      required: [id, kind, label, payload]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [calendar.propose_add, calendar.propose_update, calendar.propose_delete]
+        label: { type: string }
+        summary: { type: string }
+        payload: { type: object, additionalProperties: true }
+        confirmation: { type: string, const: required }
+    CalendarCommandRequest:
+      type: object
+      required: [calendar]
+      anyOf:
+        - required: [instruction]
+        - required: [proposal]
+      properties:
+        instruction: { type: string }
+        course_id: { type: string }
+        course_name: { type: string }
+        calendar: { $ref: '#/components/schemas/Calendar' }
+        proposal: { $ref: '#/components/schemas/CalendarProposal' }
+        confirm: { type: boolean, default: false }
+    SourceNote:
+      type: object
+      required: [title, content]
+      properties:
+        title: { type: string }
+        content: { type: string }
+        source_ref: { type: string }
+    ExplanationRequest:
+      type: object
+      required: [topic]
+      properties:
+        kind: { type: string, enum: [concept, problem], default: concept }
+        topic: { type: string }
+        course_name: { type: string }
+        language: { type: string, enum: [zh-CN, en-US], default: zh-CN }
+        source_notes:
+          type: array
+          maxItems: 12
+          items: { $ref: '#/components/schemas/SourceNote' }

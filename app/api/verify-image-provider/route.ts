@@ -20,6 +20,7 @@ import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-c
 import type { ImageProviderId } from '@/lib/media/types';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
+import { proxyFetch } from '@/lib/server/proxy-fetch';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 
 const log = createLogger('VerifyImageProvider');
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
       apiKey,
       baseUrl,
       model,
+      fetch: proxyFetch as typeof fetch,
     });
 
     if (!result.success) {

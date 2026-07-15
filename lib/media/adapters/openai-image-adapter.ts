@@ -53,8 +53,9 @@ export async function testOpenAiImageConnectivity(
   config: ImageGenerationConfig,
 ): Promise<{ success: boolean; message: string }> {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+  const request = config.fetch || fetch;
   try {
-    const response = await fetch(`${baseUrl}/models`, {
+    const response = await request(`${baseUrl}/models`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
@@ -82,11 +83,12 @@ export async function generateWithOpenAiImage(
   options: ImageGenerationOptions,
 ): Promise<ImageGenerationResult> {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
+  const request = config.fetch || fetch;
   const model = config.model || DEFAULT_MODEL;
   const size = resolveOpenAiSize(options);
   const { width, height } = parseSizeDims(size);
 
-  const response = await fetch(`${baseUrl}/images/generations`, {
+  const response = await request(`${baseUrl}/images/generations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -97,6 +99,7 @@ export async function generateWithOpenAiImage(
       prompt: options.prompt,
       n: 1,
       size,
+      quality: options.quality || 'auto',
     }),
   });
 

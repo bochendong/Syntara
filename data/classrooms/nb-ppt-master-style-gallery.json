@@ -1,0 +1,729 @@
+{
+  "id": "nb-ppt-master-style-gallery",
+  "stage": {
+    "id": "nb-ppt-master-style-gallery",
+    "courseId": "course-ppt-master-style-gallery",
+    "name": "PPT Master 风格版式 Render Gallery",
+    "description": "A render-only notebook for PPT Master inspired deck style presets.",
+    "tags": [
+      "layout",
+      "classic-ppt",
+      "style-gallery"
+    ],
+    "avatarUrl": "/avatars/notebook-agents/avatar4.avif",
+    "language": "zh-CN",
+    "style": "classic-ppt-style-gallery",
+    "createdAt": 1778102900086,
+    "updatedAt": 1778102900086
+  },
+  "scenes": [
+    {
+      "id": "nb-ppt-master-style-gallery-p01",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Academic：结构化研究页",
+      "type": "slide",
+      "order": 0,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p01",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "academic",
+          "disciplineStyle": "general",
+          "teachingFlow": "comparison_review",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "comparison",
+          "layoutTemplate": "pipeline_table",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Academic：结构化研究页",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "学术风格要先建立研究问题，再把方法、指标和结论放到可核对的结构里。"
+            },
+            {
+              "type": "process_flow",
+              "title": "研究页骨架",
+              "orientation": "horizontal",
+              "context": [],
+              "steps": [
+                {
+                  "title": "01 研究问题",
+                  "detail": "先说明要解释的现象"
+                },
+                {
+                  "title": "02 方法路径",
+                  "detail": "再给模型或实验设计"
+                },
+                {
+                  "title": "03 指标证据",
+                  "detail": "用表格承载可核查事实"
+                },
+                {
+                  "title": "04 结论边界",
+                  "detail": "最后说明适用范围"
+                }
+              ],
+              "summary": "Academic 风格强调清晰层级和数据可信度。"
+            },
+            {
+              "type": "table",
+              "caption": "Academic 不是“蓝色表格”，而是一套研究报告的信息层级",
+              "headers": [
+                "区块",
+                "输入",
+                "主要任务",
+                "输出",
+                "版式作用"
+              ],
+              "rows": [
+                [
+                  "标题",
+                  "研究命题",
+                  "聚焦问题",
+                  "明确对象",
+                  "降低理解成本"
+                ],
+                [
+                  "流程",
+                  "方法步骤",
+                  "建立顺序",
+                  "方法框架",
+                  "承载叙事"
+                ],
+                [
+                  "表格",
+                  "指标/事实",
+                  "对齐证据",
+                  "可核查信息",
+                  "适合扫读"
+                ],
+                [
+                  "结论",
+                  "边界条件",
+                  "收束判断",
+                  "可信结论",
+                  "避免空泛"
+                ]
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p02",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Tech / SaaS：白底卡片与方案结构",
+      "type": "slide",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p02",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "tech_saas",
+          "disciplineStyle": "general",
+          "teachingFlow": "comparison_review",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "comparison",
+          "layoutTemplate": "pipeline_table",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Tech / SaaS：白底卡片与方案结构",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Tech / SaaS 风格不是装饰感，而是让功能、套餐、流程和收益可以快速比较。"
+            },
+            {
+              "type": "process_flow",
+              "title": "方案页节奏",
+              "orientation": "horizontal",
+              "context": [],
+              "steps": [
+                {
+                  "title": "Problem",
+                  "detail": "用户遇到什么阻塞"
+                },
+                {
+                  "title": "Module",
+                  "detail": "产品如何拆成功能块"
+                },
+                {
+                  "title": "Metric",
+                  "detail": "哪些指标证明有效"
+                },
+                {
+                  "title": "Plan",
+                  "detail": "下一步如何采用"
+                }
+              ],
+              "summary": "Tech/SaaS 页要清爽，但信息不能散。"
+            },
+            {
+              "type": "table",
+              "caption": "白底卡片适合承载价格、功能和能力边界",
+              "headers": [
+                "模块",
+                "输入",
+                "能力",
+                "输出",
+                "适合页面"
+              ],
+              "rows": [
+                [
+                  "Starter",
+                  "单人任务",
+                  "核心功能",
+                  "快速上手",
+                  "套餐比较"
+                ],
+                [
+                  "Team",
+                  "协作流程",
+                  "权限与共享",
+                  "团队效率",
+                  "方案介绍"
+                ],
+                [
+                  "API",
+                  "系统集成",
+                  "自动化调用",
+                  "稳定扩展",
+                  "技术页"
+                ],
+                [
+                  "Enterprise",
+                  "组织治理",
+                  "安全与审计",
+                  "规模化落地",
+                  "汇报页"
+                ]
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p03",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Magazine：图文叙事页",
+      "type": "slide",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p03",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "magazine",
+          "disciplineStyle": "general",
+          "teachingFlow": "concept_explain",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "visual_split",
+          "layoutTemplate": "visual_three_steps",
+          "density": "standard",
+          "visualRole": "diagram",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Magazine：图文叙事页",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Magazine 风格适合用图片先建立情绪和场景，再把文字压缩成几个编辑部式的观察点。"
+            },
+            {
+              "type": "visual",
+              "source": "data:image/svg+xml;charset=utf-8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20300%22%3E%0A%20%20%3Crect%20width%3D%22900%22%20height%3D%22300%22%20fill%3D%22%23fbf4ea%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22760%22%20cy%3D%2260%22%20r%3D%22104%22%20fill%3D%22%23b66543%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22140%22%20cy%3D%22246%22%20r%3D%22132%22%20fill%3D%22%237b914f%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Crect%20x%3D%2252%22%20y%3D%2252%22%20width%3D%22300%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%232b2a24%22%20opacity%3D%220.08%22%20stroke%3D%22%23b66543%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%2252%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%23b66543%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%22150%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%237b914f%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22620%22%20y%3D%2252%22%20width%3D%22226%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%232b2a24%22%20opacity%3D%220.08%22%20stroke%3D%22%237b914f%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M92%20190%20C152%20120%20210%20162%20262%2088%20C290%20124%20314%20156%20328%20202%20Z%22%20fill%3D%22%23b66543%22%20opacity%3D%220.42%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22124%22%20cy%3D%2294%22%20r%3D%2226%22%20fill%3D%22%237b914f%22%20opacity%3D%220.56%22%2F%3E%0A%20%20%3Ctext%20x%3D%2286%22%20y%3D%22260%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22700%22%20fill%3D%22%232b2a24%22%3EEDITORIAL%20PHOTO%20STORY%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22620%22%20y%3D%22262%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%232b2a24%22%20opacity%3D%220.7%22%3Eimage%20first%2C%20text%20second%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+              "alt": "Editorial image collage placeholder",
+              "caption": "图片承担场景，文字承担判断。",
+              "role": "source_image",
+              "fit": "contain",
+              "emphasis": "primary"
+            },
+            {
+              "type": "layout_cards",
+              "columns": 3,
+              "items": [
+                {
+                  "title": "场景先行",
+                  "text": "先让学生知道讨论发生在哪里。",
+                  "tone": "info"
+                },
+                {
+                  "title": "观察成组",
+                  "text": "把长段解释压成 3 个可扫读观察。",
+                  "tone": "success"
+                },
+                {
+                  "title": "结论轻收",
+                  "text": "保留一点余味，不把页面写成报告。",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p04",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Dark Art：深色画廊页",
+      "type": "slide",
+      "order": 3,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p04",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "dark_art",
+          "disciplineStyle": "general",
+          "teachingFlow": "concept_explain",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "visual_split",
+          "layoutTemplate": "visual_three_steps",
+          "density": "standard",
+          "visualRole": "source_image",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Dark Art：深色画廊页",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Dark Art 风格适合讲影像、艺术、展陈和审美分析；它需要少字、强对比和清晰焦点。"
+            },
+            {
+              "type": "visual",
+              "source": "data:image/svg+xml;charset=utf-8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20300%22%3E%0A%20%20%3Crect%20width%3D%22900%22%20height%3D%22300%22%20fill%3D%22%23111224%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22760%22%20cy%3D%2260%22%20r%3D%22104%22%20fill%3D%22%23f5c85f%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22140%22%20cy%3D%22246%22%20r%3D%22132%22%20fill%3D%22%237c8cff%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Crect%20x%3D%2252%22%20y%3D%2252%22%20width%3D%22300%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23fff6d9%22%20opacity%3D%220.08%22%20stroke%3D%22%23f5c85f%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%2252%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%23f5c85f%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%22150%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%237c8cff%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22620%22%20y%3D%2252%22%20width%3D%22226%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23fff6d9%22%20opacity%3D%220.08%22%20stroke%3D%22%237c8cff%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M92%20190%20C152%20120%20210%20162%20262%2088%20C290%20124%20314%20156%20328%20202%20Z%22%20fill%3D%22%23f5c85f%22%20opacity%3D%220.42%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22124%22%20cy%3D%2294%22%20r%3D%2226%22%20fill%3D%22%237c8cff%22%20opacity%3D%220.56%22%2F%3E%0A%20%20%3Ctext%20x%3D%2286%22%20y%3D%22260%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22700%22%20fill%3D%22%23fff6d9%22%3ECINEMATIC%20GALLERY%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22620%22%20y%3D%22262%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23fff6d9%22%20opacity%3D%220.7%22%3Eimage%20first%2C%20text%20second%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+              "alt": "Dark gallery placeholder",
+              "caption": "深色页的关键是焦点，而不是把所有内容都压黑。",
+              "role": "source_image",
+              "fit": "contain",
+              "emphasis": "primary"
+            },
+            {
+              "type": "layout_cards",
+              "columns": 3,
+              "items": [
+                {
+                  "title": "一眼焦点",
+                  "text": "画面或主结论必须成为第一视觉入口。",
+                  "tone": "info"
+                },
+                {
+                  "title": "少量文字",
+                  "text": "每个卡片只保留一条判断。",
+                  "tone": "success"
+                },
+                {
+                  "title": "高亮节制",
+                  "text": "金色/紫色用于强调，不铺满页面。",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p05",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Nature Documentary：自然纪录片页",
+      "type": "slide",
+      "order": 4,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p05",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "nature_documentary",
+          "disciplineStyle": "general",
+          "teachingFlow": "concept_explain",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "visual_split",
+          "layoutTemplate": "visual_three_steps",
+          "density": "standard",
+          "visualRole": "source_image",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Nature Documentary：自然纪录片页",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Nature Documentary 风格适合自然、生物、地理和观察记录；它要让图像沉浸，但 UI 不抢戏。"
+            },
+            {
+              "type": "visual",
+              "source": "data:image/svg+xml;charset=utf-8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20300%22%3E%0A%20%20%3Crect%20width%3D%22900%22%20height%3D%22300%22%20fill%3D%22%23061f1c%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22760%22%20cy%3D%2260%22%20r%3D%22104%22%20fill%3D%22%236ee7b7%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22140%22%20cy%3D%22246%22%20r%3D%22132%22%20fill%3D%22%23d7bd63%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Crect%20x%3D%2252%22%20y%3D%2252%22%20width%3D%22300%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23f4f7ea%22%20opacity%3D%220.08%22%20stroke%3D%22%236ee7b7%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%2252%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%236ee7b7%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%22150%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%23d7bd63%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22620%22%20y%3D%2252%22%20width%3D%22226%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23f4f7ea%22%20opacity%3D%220.08%22%20stroke%3D%22%23d7bd63%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M92%20190%20C152%20120%20210%20162%20262%2088%20C290%20124%20314%20156%20328%20202%20Z%22%20fill%3D%22%236ee7b7%22%20opacity%3D%220.42%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22124%22%20cy%3D%2294%22%20r%3D%2226%22%20fill%3D%22%23d7bd63%22%20opacity%3D%220.56%22%2F%3E%0A%20%20%3Ctext%20x%3D%2286%22%20y%3D%22260%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22700%22%20fill%3D%22%23f4f7ea%22%3ENATURE%20FIELD%20NOTES%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22620%22%20y%3D%22262%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23f4f7ea%22%20opacity%3D%220.7%22%3Eimage%20first%2C%20text%20second%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+              "alt": "Nature documentary placeholder",
+              "caption": "自然类页面需要图片主导和低干扰标注。",
+              "role": "source_image",
+              "fit": "contain",
+              "emphasis": "primary"
+            },
+            {
+              "type": "layout_cards",
+              "columns": 3,
+              "items": [
+                {
+                  "title": "环境",
+                  "text": "先给地点、生态位或观察对象。",
+                  "tone": "info"
+                },
+                {
+                  "title": "行为",
+                  "text": "再描述可观察动作或变化。",
+                  "tone": "success"
+                },
+                {
+                  "title": "解释",
+                  "text": "最后把现象接到概念或机制。",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p06",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Product Launch：黑底高对比发布页",
+      "type": "slide",
+      "order": 5,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p06",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "product_launch",
+          "disciplineStyle": "general",
+          "teachingFlow": "concept_explain",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "visual_split",
+          "layoutTemplate": "visual_three_steps",
+          "density": "standard",
+          "visualRole": "source_image",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Product Launch：黑底高对比发布页",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Product Launch 风格要把参数、价格、卖点做成舞台信息，而不是普通讲义卡片。"
+            },
+            {
+              "type": "visual",
+              "source": "data:image/svg+xml;charset=utf-8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20300%22%3E%0A%20%20%3Crect%20width%3D%22900%22%20height%3D%22300%22%20fill%3D%22%23060606%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22760%22%20cy%3D%2260%22%20r%3D%22104%22%20fill%3D%22%23f97316%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22140%22%20cy%3D%22246%22%20r%3D%22132%22%20fill%3D%22%2360a5fa%22%20opacity%3D%220.16%22%2F%3E%0A%20%20%3Crect%20x%3D%2252%22%20y%3D%2252%22%20width%3D%22300%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.08%22%20stroke%3D%22%23f97316%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%2252%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%23f97316%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22386%22%20y%3D%22150%22%20width%3D%22198%22%20height%3D%2278%22%20rx%3D%2214%22%20fill%3D%22%2360a5fa%22%20opacity%3D%220.22%22%2F%3E%0A%20%20%3Crect%20x%3D%22620%22%20y%3D%2252%22%20width%3D%22226%22%20height%3D%22176%22%20rx%3D%2218%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.08%22%20stroke%3D%22%2360a5fa%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M92%20190%20C152%20120%20210%20162%20262%2088%20C290%20124%20314%20156%20328%20202%20Z%22%20fill%3D%22%23f97316%22%20opacity%3D%220.42%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%22124%22%20cy%3D%2294%22%20r%3D%2226%22%20fill%3D%22%2360a5fa%22%20opacity%3D%220.56%22%2F%3E%0A%20%20%3Ctext%20x%3D%2286%22%20y%3D%22260%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22700%22%20fill%3D%22%23ffffff%22%3EPRODUCT%20LAUNCH%3C%2Ftext%3E%0A%20%20%3Ctext%20x%3D%22620%22%20y%3D%22262%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2216%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.7%22%3Eimage%20first%2C%20text%20second%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+              "alt": "Product launch placeholder",
+              "caption": "发布会页需要黑底、橙色强调和明确卖点。",
+              "role": "source_image",
+              "fit": "contain",
+              "emphasis": "primary"
+            },
+            {
+              "type": "layout_cards",
+              "columns": 3,
+              "items": [
+                {
+                  "title": "主卖点",
+                  "text": "先给一句能记住的产品承诺。",
+                  "tone": "info"
+                },
+                {
+                  "title": "硬参数",
+                  "text": "用数字或规格支撑可信度。",
+                  "tone": "success"
+                },
+                {
+                  "title": "行动点",
+                  "text": "最后给价格、版本或下一步。",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-style-gallery-p07",
+      "stageId": "nb-ppt-master-style-gallery",
+      "title": "Two-by-One：风格层和结构层要分开",
+      "type": "slide",
+      "order": 6,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-style-gallery-p07",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff",
+            "respectProfileStyle": false
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "deckStyle": "classic_business",
+          "disciplineStyle": "general",
+          "teachingFlow": "comparison_review",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "summary",
+          "layoutTemplate": "two_by_one_summary",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "archetype": "summary",
+          "title": "Two-by-One：风格层和结构层要分开",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "现在补上的能力",
+              "text": "`deckStyle` 负责母版风格，`layoutTemplate` 负责页面结构；两者分开，普通 PPT 才能成套。"
+            },
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "以前缺的东西",
+              "text": "我们只有 pipeline/table/cards 这类结构模板，没有 Academic、Magazine、Product Launch 这种 deck-level 主题包。"
+            },
+            {
+              "type": "callout",
+              "tone": "success",
+              "title": "下一步方向",
+              "text": "生成侧用场景和受众选择风格；渲染侧把同一风格贯穿标题、图示、表格、卡片和总结页。"
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    }
+  ],
+  "createdAt": "2026-05-06T21:28:20.086Z"
+}

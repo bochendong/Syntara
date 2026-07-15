@@ -660,11 +660,11 @@ export default function GenerationChartStyleTestPage() {
         payload: next,
       });
       setDbStatus('ready');
-      setDbMessage('已保存到 TestResult，可在测试中心统计');
+      setDbMessage('已保存到浏览器本地测试库，可在测试中心统计');
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : String(caught);
       setDbStatus('fallback');
-      setDbMessage(`数据库保存失败，已保留本地缓存：${message}`);
+      setDbMessage(`浏览器本地测试库保存失败，已保留页面缓存：${message}`);
     }
   }, []);
 
@@ -704,7 +704,7 @@ export default function GenerationChartStyleTestPage() {
         setActivePair(local.pairs[0] || null);
         const message = caught instanceof Error ? caught.message : String(caught);
         setDbStatus('fallback');
-        setDbMessage(`数据库读取失败，已使用本地缓存：${message}`);
+        setDbMessage(`浏览器本地测试库读取失败，已使用页面缓存：${message}`);
       }
     }
 

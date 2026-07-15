@@ -23,11 +23,14 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
   ImageProviderId,
+  StudyCoverOverlaySpec,
 } from '@/lib/media/types';
+import { compositeStudyCoverResult } from '@/lib/media/study-cover-overlay';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { assertUserHasCredits, chargeCreditsForImageGeneration } from '@/lib/server/credits';
 import { getRequestContext, runWithRequestContext } from '@/lib/server/request-context';
+import { proxyFetch } from '@/lib/server/proxy-fetch';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { estimateOpenAIImageGenerationCost } from '@/lib/utils/openai-pricing';
 
@@ -111,7 +114,7 @@ async function normalizeOpenAiImageAspectRatio(
   if (result.base64) {
     sourceBuffer = Buffer.from(parseImageBase64(result.base64), 'base64');
   } else if (result.url) {
-    const response = await fetch(result.url);
+    const response = await proxyFetch(result.url);
     if (response.ok) {
       sourceBuffer = Buffer.from(await response.arrayBuffer());
     }
@@ -137,12 +140,42 @@ async function normalizeOpenAiImageAspectRatio(
   };
 }
 
+async function normalizeRequestedImageDimensions(
+  result: ImageGenerationResult,
+  width?: number,
+  height?: number,
+): Promise<ImageGenerationResult> {
+  if (!width || !height || (result.width === width && result.height === height)) return result;
+
+  let sourceBuffer: Buffer | null = null;
+  if (result.base64) {
+    sourceBuffer = Buffer.from(parseImageBase64(result.base64), 'base64');
+  } else if (result.url) {
+    const response = await proxyFetch(result.url);
+    if (response.ok) sourceBuffer = Buffer.from(await response.arrayBuffer());
+  }
+  if (!sourceBuffer) return result;
+
+  const sharp = (await import('sharp')).default;
+  const normalized = await sharp(sourceBuffer)
+    .resize(width, height, { fit: 'cover', position: 'centre' })
+    .png()
+    .toBuffer();
+  return {
+    ...result,
+    url: undefined,
+    base64: normalized.toString('base64'),
+    width,
+    height,
+  };
+}
+
 async function materializeImageResultInline(
   result: ImageGenerationResult,
 ): Promise<ImageGenerationResult> {
   if (result.base64 || !result.url) return result;
   try {
-    const response = await fetch(result.url);
+    const response = await proxyFetch(result.url);
     if (!response.ok) return result;
     const contentType = response.headers.get('content-type') || 'image/png';
     if (!contentType.startsWith('image/')) return result;
@@ -160,6 +193,7 @@ export async function POST(request: NextRequest) {
   return runWithRequestContext(request, '/api/generate/image', async () => {
     try {
       const body = (await request.json()) as ImageGenerationOptions & {
+        coverOverlay?: StudyCoverOverlaySpec;
         notebookContext?: {
           id?: string;
           name?: string;
@@ -222,14 +256,22 @@ export async function POST(request: NextRequest) {
       }
 
       const rawResult = await generateImage(
-        { providerId, apiKey, baseUrl, model: clientModel },
+        { providerId, apiKey, baseUrl, model: clientModel, fetch: proxyFetch as typeof fetch },
         body,
       );
-      const normalizedResult =
+      const aspectNormalizedResult =
         providerId === 'openai-image'
           ? await normalizeOpenAiImageAspectRatio(rawResult, body.aspectRatio)
           : rawResult;
-      const result = await materializeImageResultInline(normalizedResult);
+      const normalizedResult = await normalizeRequestedImageDimensions(
+        aspectNormalizedResult,
+        body.width,
+        body.height,
+      );
+      const inlineResult = await materializeImageResultInline(normalizedResult);
+      const result = body.coverOverlay
+        ? await compositeStudyCoverResult(inlineResult, body.coverOverlay)
+        : inlineResult;
       const resolvedModelId = result.usage?.modelId || clientModel || 'gpt-image-2';
       const costEstimate = createImageCostEstimate(providerId, resolvedModelId, result);
 
@@ -261,7 +303,10 @@ export async function POST(request: NextRequest) {
         result: ImageGenerationResult;
         costEstimate?: ImageGenerationCostEstimate;
         skippedCreditCharge?: boolean;
-      } = { result, skippedCreditCharge: skipCreditCharge };
+      } = {
+        result,
+        skippedCreditCharge: skipCreditCharge,
+      };
       if (costEstimate) responseBody.costEstimate = costEstimate;
 
       return apiSuccess(responseBody);

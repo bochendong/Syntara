@@ -92,6 +92,25 @@ import {
   neutralizeUnconfirmedMemoryWriteClaim,
 } from '@/features/learn-core/client-actions';
 import {
+  applyLearningCalendarDelete,
+  applyLearningCalendarUpdate,
+  learningActionCalendarEvents,
+  mergeSyllabusEvents,
+  readSyllabusEvents,
+  writeSyllabusEvents,
+  type SyllabusCalendarEvent,
+  type SyllabusEventKind,
+} from '@/features/learn-core/client-calendar-actions';
+import {
+  buildMiniLectureDeck,
+  buildMiniLecturePrompt,
+  MINI_LECTURE_CANVAS_HEIGHT,
+  MINI_LECTURE_CANVAS_WIDTH,
+  type MiniLectureDeck,
+  type MiniLecturePrompt,
+  type MiniLectureRegion,
+} from '@/features/learn-core/client-mini-lecture';
+import {
   createCalendarAddActionFromArtifacts,
   latestLearnArtifactsForTurn,
   matchingCalendarAddActionForArtifact,
@@ -515,7 +534,6 @@ const LEARN_SESSION_MESSAGES_PREFIX = 'syntara-learn-session-messages:v1';
 const LEARN_DELETED_SESSION_IDS_PREFIX = 'syntara-learn-deleted-session-ids:v1';
 const LEARN_LEFT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-left-rail-collapsed';
 const LEARN_RIGHT_RAIL_COLLAPSED_STORAGE_KEY = 'syntara-learn-right-rail-collapsed';
-const LEARN_SYLLABUS_EVENTS_PREFIX = 'syntara-learn-syllabus-events:v1';
 const LEARN_DELETED_PRACTICE_PLAN_IDS_PREFIX = 'syntara-learn-deleted-practice-plan-ids:v1';
 const LEARN_COURSE_LIST_CACHE_PREFIX = 'syntara-learn-course-list-cache:v1';
 const LEARN_COURSE_LIST_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -528,85 +546,6 @@ type LearnChatSession = {
 };
 
 type LearnRightRailView = 'sessions' | 'calendar' | 'learning';
-
-type SyllabusEventKind = 'assignment' | 'exam' | 'progress' | 'tutorial' | 'holiday' | 'other';
-
-type SyllabusCalendarEvent = {
-  id: string;
-  title: string;
-  kind: SyllabusEventKind;
-  date: string;
-  sourceName: string;
-  createdAt: number;
-  origin?: 'syllabus' | 'ai_plan' | 'manual' | 'practice' | 'exam_prep';
-  sourceRef?: { type: 'plan' | 'action' | 'syllabus' | 'manual'; id: string };
-  durationMinutes?: number;
-  status?: 'planned' | 'done' | 'skipped';
-  week?: string | null;
-  sourceColumn?: string | null;
-  rawText?: string | null;
-  confidence?: number | null;
-};
-
-type MiniLecturePrompt = {
-  id: string;
-  title: string;
-  question: string;
-  answer: string;
-  courseName: string;
-  createdAt: number;
-};
-
-type MiniLectureRegion = {
-  id: string;
-  label: string;
-  script: string;
-  markerColorHex: string;
-  bbox: [number, number, number, number];
-  markerPoints: Array<{
-    x: number;
-    y: number;
-    corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  }>;
-};
-
-type MiniLectureAction =
-  | {
-      id: string;
-      type: 'spotlight';
-      elementId: string;
-      title: string;
-      dimOpacity: number;
-    }
-  | {
-      id: string;
-      type: 'speech';
-      title: string;
-      text: string;
-    };
-
-type MiniLecturePage = {
-  id: string;
-  title: string;
-  imageDataUrl: string;
-  regions: MiniLectureRegion[];
-  actions: MiniLectureAction[];
-};
-
-type MiniLectureDeck = {
-  id: string;
-  title: string;
-  sourceQuestion: string;
-  sourceAnswer: string;
-  pages: MiniLecturePage[];
-  markerProtocol: {
-    type: 'corner-square-markers';
-    markerSizePx: number;
-    markerCountPerComponent: 4;
-    recoveredFrom: 'client-mini-lecture';
-  };
-  createdAt: number;
-};
 
 type TeachingReviewPlanEvidenceItem = {
   id: string;
@@ -1058,14 +997,6 @@ function copyableLearnMessageText(message: LearnMessage): string {
   return parts.join('\n').trim();
 }
 
-function syllabusEventsKey(userId: string, courseId: string) {
-  return [
-    LEARN_SYLLABUS_EVENTS_PREFIX,
-    encodeURIComponent(userId),
-    encodeURIComponent(courseId),
-  ].join(':');
-}
-
 function deletedPracticePlanIdsKey(userId: string, courseId: string) {
   return [
     LEARN_DELETED_PRACTICE_PLAN_IDS_PREFIX,
@@ -1108,43 +1039,6 @@ function rememberDeletedPracticePlanId(userId: string, courseId: string, planId:
 function visiblePracticePlans(plans: PracticePlan[], deletedIds: Set<string>): PracticePlan[] {
   if (deletedIds.size === 0) return plans;
   return plans.filter((plan) => !deletedIds.has(plan.id));
-}
-
-function readSyllabusEvents(userId: string, courseId: string): SyllabusCalendarEvent[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(syllabusEventsKey(userId, courseId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<SyllabusCalendarEvent>[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item): item is SyllabusCalendarEvent =>
-        Boolean(
-          item &&
-          typeof item.id === 'string' &&
-          typeof item.title === 'string' &&
-          typeof item.date === 'string' &&
-          typeof item.sourceName === 'string' &&
-          typeof item.createdAt === 'number' &&
-          ['assignment', 'exam', 'progress', 'tutorial', 'holiday', 'other'].includes(
-            String(item.kind),
-          ),
-        ),
-      )
-      .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title))
-      .slice(0, 120);
-  } catch {
-    return [];
-  }
-}
-
-function writeSyllabusEvents(userId: string, courseId: string, events: SyllabusCalendarEvent[]) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(syllabusEventsKey(userId, courseId), JSON.stringify(events.slice(0, 120)));
-  } catch {
-    /* localStorage may be unavailable */
-  }
 }
 
 function isSyllabusPdfFile(file: File) {
@@ -1786,19 +1680,6 @@ function SourceUploadBadge({
     >
       {label}
     </span>
-  );
-}
-
-function mergeSyllabusEvents(
-  existingEvents: SyllabusCalendarEvent[],
-  incomingEvents: SyllabusCalendarEvent[],
-) {
-  const byKey = new Map<string, SyllabusCalendarEvent>();
-  for (const event of [...existingEvents, ...incomingEvents]) {
-    byKey.set(`${event.date}:${event.kind}:${event.title.toLowerCase()}`, event);
-  }
-  return Array.from(byKey.values()).sort(
-    (a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title),
   );
 }
 
@@ -2943,337 +2824,6 @@ function localDayKey(value: number | Date): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
-}
-
-const MINI_LECTURE_CANVAS_WIDTH = 1000;
-const MINI_LECTURE_CANVAS_HEIGHT = 562.5;
-const MINI_LECTURE_MARKER_SIZE = 14;
-const MINI_LECTURE_MARKER_COLORS = ['#ef4444', '#0ea5e9', '#10b981', '#f59e0b'] as const;
-
-function compactLectureText(value: string, maxChars: number): string {
-  const text = value
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]*]\([^)]*\)/g, (match) => match.replace(/^\[|\]\([^)]*\)$/g, ''))
-    .replace(/[#>*_~|-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (text.length <= maxChars) return text;
-  return `${text.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
-}
-
-function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function wrapLectureLine(text: string, maxChars: number, maxLines: number): string[] {
-  const normalized = compactLectureText(text, maxChars * maxLines * 2);
-  const lines: string[] = [];
-  let current = '';
-  for (const char of normalized) {
-    current += char;
-    if (current.length >= maxChars) {
-      lines.push(current.trim());
-      current = '';
-      if (lines.length >= maxLines) break;
-    }
-  }
-  if (current.trim() && lines.length < maxLines) lines.push(current.trim());
-  return lines.length ? lines : ['这一步先抓住核心关系。'];
-}
-
-function lectureSentences(text: string): string[] {
-  return compactLectureText(text, 1600)
-    .split(/(?<=[。！？!?；;])|\n+/)
-    .map((item) => item.replace(/^\d+[.、)]\s*/, '').trim())
-    .filter((item) => item.length >= 8)
-    .slice(0, 8);
-}
-
-function miniLectureMarkerPoints(
-  bbox: [number, number, number, number],
-): MiniLectureRegion['markerPoints'] {
-  const [x0, y0, x1, y1] = bbox;
-  const half = MINI_LECTURE_MARKER_SIZE / 2;
-  return [
-    { x: x0 + half, y: y0 + half, corner: 'top-left' },
-    { x: x1 - half, y: y0 + half, corner: 'top-right' },
-    { x: x0 + half, y: y1 - half, corner: 'bottom-left' },
-    { x: x1 - half, y: y1 - half, corner: 'bottom-right' },
-  ];
-}
-
-function miniLectureRegion(args: {
-  pageIndex: number;
-  index: number;
-  label: string;
-  script: string;
-  bbox: [number, number, number, number];
-}): MiniLectureRegion {
-  const color =
-    MINI_LECTURE_MARKER_COLORS[args.index % MINI_LECTURE_MARKER_COLORS.length] ||
-    MINI_LECTURE_MARKER_COLORS[0];
-  return {
-    id: `mini-lecture-p${args.pageIndex + 1}-focus-${args.index + 1}`,
-    label: compactLectureText(args.label, 36),
-    script: compactLectureText(args.script, 240),
-    markerColorHex: color,
-    bbox: args.bbox,
-    markerPoints: miniLectureMarkerPoints(args.bbox),
-  };
-}
-
-function miniLectureActions(page: MiniLecturePage): MiniLectureAction[] {
-  return page.regions.flatMap((region) => [
-    {
-      id: `${region.id}-spotlight`,
-      type: 'spotlight' as const,
-      elementId: region.id,
-      title: `聚焦：${region.label}`,
-      dimOpacity: 0.62,
-    },
-    {
-      id: `${region.id}-speech`,
-      type: 'speech' as const,
-      title: region.label,
-      text: region.script,
-    },
-  ]);
-}
-
-function svgTextBlock(args: {
-  text: string;
-  x: number;
-  y: number;
-  maxChars: number;
-  maxLines: number;
-  fontSize: number;
-  color?: string;
-  weight?: number;
-}) {
-  const lines = wrapLectureLine(args.text, args.maxChars, args.maxLines);
-  return `<text x="${args.x}" y="${args.y}" font-family="Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="${args.fontSize}" font-weight="${args.weight || 500}" fill="${args.color || '#0f172a'}">${lines
-    .map(
-      (line, index) =>
-        `<tspan x="${args.x}" dy="${index === 0 ? 0 : args.fontSize * 1.45}">${xmlEscape(line)}</tspan>`,
-    )
-    .join('')}</text>`;
-}
-
-function miniLectureSlideDataUrl(args: {
-  title: string;
-  subtitle: string;
-  regions: MiniLectureRegion[];
-}) {
-  const regionMarkup = args.regions
-    .map((region, index) => {
-      const [x0, y0, x1, y1] = region.bbox;
-      const textX = x0 + 22;
-      const textY = y0 + 42;
-      const markerRects = region.markerPoints
-        .map(
-          (point) =>
-            `<rect x="${point.x - MINI_LECTURE_MARKER_SIZE / 2}" y="${point.y - MINI_LECTURE_MARKER_SIZE / 2}" width="${MINI_LECTURE_MARKER_SIZE}" height="${MINI_LECTURE_MARKER_SIZE}" rx="2" fill="${region.markerColorHex}" opacity="0.95" />`,
-        )
-        .join('');
-      return `
-        <rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" rx="20" fill="${index % 2 === 0 ? '#f8fafc' : '#f0fdfa'}" stroke="${region.markerColorHex}" stroke-opacity="0.18" />
-        ${markerRects}
-        ${svgTextBlock({
-          text: region.label,
-          x: textX,
-          y: textY,
-          maxChars: 22,
-          maxLines: 1,
-          fontSize: 24,
-          color: '#0f172a',
-          weight: 700,
-        })}
-        ${svgTextBlock({
-          text: region.script,
-          x: textX,
-          y: textY + 38,
-          maxChars: 34,
-          maxLines: 3,
-          fontSize: 18,
-          color: '#334155',
-          weight: 450,
-        })}
-      `;
-    })
-    .join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${MINI_LECTURE_CANVAS_WIDTH}" height="${MINI_LECTURE_CANVAS_HEIGHT}" viewBox="0 0 ${MINI_LECTURE_CANVAS_WIDTH} ${MINI_LECTURE_CANVAS_HEIGHT}">
-    <defs>
-      <pattern id="miniGrid" width="28" height="28" patternUnits="userSpaceOnUse">
-        <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#e2e8f0" stroke-width="1" opacity="0.45" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="#fffdf8" />
-    <rect width="100%" height="100%" fill="url(#miniGrid)" />
-    <rect x="34" y="28" width="932" height="506" rx="28" fill="#ffffff" opacity="0.72" />
-    ${svgTextBlock({
-      text: args.title,
-      x: 70,
-      y: 72,
-      maxChars: 24,
-      maxLines: 1,
-      fontSize: 30,
-      color: '#0f172a',
-      weight: 800,
-    })}
-    ${svgTextBlock({
-      text: args.subtitle,
-      x: 72,
-      y: 108,
-      maxChars: 42,
-      maxLines: 1,
-      fontSize: 15,
-      color: '#64748b',
-      weight: 500,
-    })}
-    ${regionMarkup}
-  </svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function miniLecturePage(args: {
-  deckId: string;
-  pageIndex: number;
-  title: string;
-  subtitle: string;
-  regions: MiniLectureRegion[];
-}): MiniLecturePage {
-  const page: MiniLecturePage = {
-    id: `${args.deckId}-page-${args.pageIndex + 1}`,
-    title: args.title,
-    imageDataUrl: miniLectureSlideDataUrl({
-      title: args.title,
-      subtitle: args.subtitle,
-      regions: args.regions,
-    }),
-    regions: args.regions,
-    actions: [],
-  };
-  return { ...page, actions: miniLectureActions(page) };
-}
-
-function isMiniLectureCandidate(question: string, answer: string): boolean {
-  if (answer.trim().length < 120) return false;
-  if (
-    /(学到哪里|学习状态|当前状态|进度|复习计划|学习计划|刷题计划|小测|quiz|test)/i.test(question)
-  ) {
-    return false;
-  }
-  return /(讲解|解释|说明|为什么|怎么理解|怎么做|如何做|题目|这道题|证明|推导|公式|概念|知识点|错在哪|哪里错|step|explain|why|prove|problem)/i.test(
-    question,
-  );
-}
-
-function buildMiniLecturePrompt(args: {
-  question: string;
-  answer: string;
-  course: CourseRecord;
-}): MiniLecturePrompt | undefined {
-  if (!isMiniLectureCandidate(args.question, args.answer)) return undefined;
-  const titleSource = compactLectureText(args.question, 42) || '课堂讲解';
-  return {
-    id: makeClientId('mini-lecture-prompt'),
-    title: titleSource,
-    question: compactLectureText(args.question, 900),
-    answer: compactLectureText(args.answer, 2200),
-    courseName: args.course.name,
-    createdAt: Date.now(),
-  };
-}
-
-function buildMiniLectureDeck(prompt: MiniLecturePrompt): MiniLectureDeck {
-  const deckId = makeClientId('mini-lecture');
-  const sentences = lectureSentences(prompt.answer);
-  const first = sentences[0] || '先把题目的目标翻译成一句可以操作的话。';
-  const second = sentences[1] || '再找出关键条件，决定先用定义、公式还是例子。';
-  const third = sentences[2] || '最后把推理链条补完整，检查每一步是否回应题目。';
-  const fourth = sentences[3] || sentences[2] || '最后收束成一个容易回看的重点。';
-  const title = compactLectureText(prompt.title, 28) || '课堂讲解';
-  const pageOneRegions = [
-    miniLectureRegion({
-      pageIndex: 0,
-      index: 0,
-      label: '题目抓手',
-      script: `先看题目在问什么：${compactLectureText(prompt.question, 120)}`,
-      bbox: [70, 130, 930, 220],
-    }),
-    miniLectureRegion({
-      pageIndex: 0,
-      index: 1,
-      label: '核心思路',
-      script: first,
-      bbox: [70, 244, 930, 346],
-    }),
-    miniLectureRegion({
-      pageIndex: 0,
-      index: 2,
-      label: '第一步怎么落地',
-      script: second,
-      bbox: [70, 370, 930, 484],
-    }),
-  ];
-  const pages: MiniLecturePage[] = [
-    miniLecturePage({
-      deckId,
-      pageIndex: 0,
-      title,
-      subtitle: `${prompt.courseName} · 迷你课堂讲解`,
-      regions: pageOneRegions,
-    }),
-  ];
-
-  if (sentences.length >= 3 || prompt.answer.length > 520) {
-    const pageTwoRegions = [
-      miniLectureRegion({
-        pageIndex: 1,
-        index: 0,
-        label: '容易卡住的地方',
-        script: third,
-        bbox: [70, 140, 930, 258],
-      }),
-      miniLectureRegion({
-        pageIndex: 1,
-        index: 1,
-        label: '检查答案',
-        script: fourth,
-        bbox: [70, 290, 930, 410],
-      }),
-    ];
-    pages.push(
-      miniLecturePage({
-        deckId,
-        pageIndex: 1,
-        title: '把讲解收束成检查清单',
-        subtitle: `${prompt.courseName} · 最后一页`,
-        regions: pageTwoRegions,
-      }),
-    );
-  }
-
-  return {
-    id: deckId,
-    title,
-    sourceQuestion: prompt.question,
-    sourceAnswer: prompt.answer,
-    pages,
-    markerProtocol: {
-      type: 'corner-square-markers',
-      markerSizePx: MINI_LECTURE_MARKER_SIZE,
-      markerCountPerComponent: 4,
-      recoveredFrom: 'client-mini-lecture',
-    },
-    createdAt: Date.now(),
-  };
 }
 
 function uniquePlanStrings(values: Array<string | undefined | null>, limit = 12): string[] {
@@ -5992,231 +5542,6 @@ function memoryWriteCandidateFromLearningAction(args: {
   };
 }
 
-function validDateKey(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) ? value.trim() : null;
-}
-
-function learningActionCalendarEvents(action: LearningAction): SyllabusCalendarEvent[] {
-  const payload = actionPayload(action);
-  const rawItems = Array.isArray(payload.items) ? payload.items : [];
-  const itemRecords = rawItems.filter((item): item is Record<string, unknown> =>
-    Boolean(item && typeof item === 'object'),
-  );
-  const sourceName = 'AI 学习动作';
-
-  if (itemRecords.length > 0) {
-    return itemRecords.slice(0, 30).map((item, index) => {
-      const date =
-        validDateKey(item.date) ||
-        validDateKey(item.day) ||
-        localDayKey(addCalendarDays(new Date(), index));
-      return {
-        id: makeClientId('learning-action-event'),
-        title:
-          payloadString(item.title) ||
-          payloadString(item.label) ||
-          `${learnActionTitle(action)} ${index + 1}`,
-        kind: 'progress',
-        date,
-        sourceName,
-        origin: 'ai_plan',
-        sourceRef: { type: 'action', id: action.id },
-        durationMinutes:
-          typeof item.durationMinutes === 'number' && Number.isFinite(item.durationMinutes)
-            ? Math.max(5, Math.round(item.durationMinutes))
-            : undefined,
-        status: 'planned',
-        rawText: payloadString(item.reason) || actionSummary(action),
-        createdAt: Date.now(),
-      };
-    });
-  }
-
-  return [
-    {
-      id: makeClientId('learning-action-event'),
-      title: actionSummary(action) || learnActionTitle(action),
-      kind: 'progress',
-      date: validDateKey(payload.date) || localDayKey(new Date()),
-      sourceName,
-      origin: 'ai_plan',
-      sourceRef: { type: 'action', id: action.id },
-      durationMinutes:
-        typeof payload.durationMinutes === 'number' && Number.isFinite(payload.durationMinutes)
-          ? Math.max(5, Math.round(payload.durationMinutes))
-          : undefined,
-      status: 'planned',
-      rawText: actionSummary(action),
-      createdAt: Date.now(),
-    },
-  ];
-}
-
-function actionTargets(action: LearningAction): string[] {
-  const payload = actionPayload(action);
-  const targets = Array.isArray(payload.targets) ? payload.targets : [];
-  const fromTargets = targets.map((item) => payloadString(item)).filter(Boolean);
-  const targetIds = Array.isArray(payload.targetIds) ? payload.targetIds : [];
-  const fromTargetIds = targetIds.map((item) => payloadString(item)).filter(Boolean);
-  const singleTarget = payloadString(payload.target);
-  const eventId = payloadString(payload.eventId);
-  return Array.from(
-    new Set([...fromTargetIds, eventId, ...fromTargets, singleTarget].filter(Boolean)),
-  );
-}
-
-function calendarEventMatchesTarget(event: SyllabusCalendarEvent, target: string): boolean {
-  const normalizedTarget = target.trim().toLowerCase();
-  if (!normalizedTarget) return false;
-  if (event.id.toLowerCase() === normalizedTarget) return true;
-  if (event.sourceRef?.id?.toLowerCase() === normalizedTarget) return true;
-  const normalizedTitle = event.title.trim().toLowerCase();
-  return normalizedTitle === normalizedTarget || normalizedTitle.includes(normalizedTarget);
-}
-
-function uniqueCalendarTargetMatches(
-  events: SyllabusCalendarEvent[],
-  targets: string[],
-): SyllabusCalendarEvent[] {
-  const matched = new Map<string, SyllabusCalendarEvent>();
-  for (const target of targets) {
-    for (const event of events) {
-      if (calendarEventMatchesTarget(event, target)) matched.set(event.id, event);
-    }
-  }
-  return [...matched.values()];
-}
-
-function weekdayIndexFromText(text: string): number | null {
-  const normalized = text.toLowerCase();
-  if (/周日|星期日|礼拜日|sunday|sun/.test(normalized)) return 0;
-  if (/周一|星期一|礼拜一|monday|mon/.test(normalized)) return 1;
-  if (/周二|星期二|礼拜二|tuesday|tue/.test(normalized)) return 2;
-  if (/周三|星期三|礼拜三|wednesday|wed/.test(normalized)) return 3;
-  if (/周四|星期四|礼拜四|thursday|thu/.test(normalized)) return 4;
-  if (/周五|星期五|礼拜五|friday|fri/.test(normalized)) return 5;
-  if (/周六|星期六|礼拜六|saturday|sat/.test(normalized)) return 6;
-  return null;
-}
-
-function firstCalendarDateForWeekday(
-  events: SyllabusCalendarEvent[],
-  weekday: number,
-): string | null {
-  const today = localDayKey(new Date());
-  const sorted = events
-    .filter((event) => event.date >= today)
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title, 'zh-CN'));
-  const matched = sorted.find((event) => new Date(`${event.date}T12:00:00`).getDay() === weekday);
-  return matched?.date || null;
-}
-
-function isAiEditableCalendarEvent(event: SyllabusCalendarEvent): boolean {
-  return (
-    event.origin === 'ai_plan' ||
-    event.origin === 'practice' ||
-    event.origin === 'manual' ||
-    event.sourceName === 'AI 学习动作'
-  );
-}
-
-function applyBulkLearningCalendarUpdate(args: {
-  events: SyllabusCalendarEvent[];
-  action: LearningAction;
-}): { events: SyllabusCalendarEvent[]; updated: SyllabusCalendarEvent } | null {
-  const payload = actionPayload(args.action);
-  const updates = payloadRecord(payload.updates);
-  const actionText = [
-    actionSummary(args.action),
-    payloadString(payload.reason),
-    payloadString(updates.reason),
-    payloadString(payload.description),
-  ]
-    .filter(Boolean)
-    .join('\n');
-  const shiftByDays =
-    typeof updates.shiftByDays === 'number' && Number.isFinite(updates.shiftByDays)
-      ? Math.round(updates.shiftByDays)
-      : typeof payload.shiftByDays === 'number' && Number.isFinite(payload.shiftByDays)
-        ? Math.round(payload.shiftByDays)
-        : /(顺延|后移|推迟|delay|shift)/i.test(actionText)
-          ? 1
-          : 0;
-  if (!shiftByDays) return null;
-
-  const weekday = weekdayIndexFromText(actionText);
-  const sinceDate =
-    validDateKey(updates.sinceDate) ||
-    validDateKey(payload.sinceDate) ||
-    validDateKey(updates.fromDate) ||
-    validDateKey(payload.fromDate) ||
-    validDateKey(updates.date) ||
-    validDateKey(payload.date) ||
-    (weekday === null ? null : firstCalendarDateForWeekday(args.events, weekday));
-  if (!sinceDate) return null;
-
-  const candidates = args.events.filter(
-    (event) => isAiEditableCalendarEvent(event) && event.date >= sinceDate,
-  );
-  if (!candidates.length) return null;
-  const candidateIds = new Set(candidates.map((event) => event.id));
-  let firstUpdated: SyllabusCalendarEvent | null = null;
-  const nextEvents = args.events.map((event) => {
-    if (!candidateIds.has(event.id)) return event;
-    const updated: SyllabusCalendarEvent = {
-      ...event,
-      date: localDayKey(addCalendarDays(new Date(`${event.date}T12:00:00`), shiftByDays)),
-      rawText: payloadString(updates.reason) || payloadString(payload.reason) || event.rawText,
-    };
-    firstUpdated ||= updated;
-    return updated;
-  });
-  return firstUpdated ? { events: nextEvents, updated: firstUpdated } : null;
-}
-
-function applyLearningCalendarUpdate(args: {
-  events: SyllabusCalendarEvent[];
-  action: LearningAction;
-}): { events: SyllabusCalendarEvent[]; updated: SyllabusCalendarEvent } | null {
-  const payload = actionPayload(args.action);
-  const targets = actionTargets(args.action);
-  const matches = uniqueCalendarTargetMatches(args.events, targets);
-  if (matches.length !== 1) return applyBulkLearningCalendarUpdate(args);
-  const target = matches[0];
-  const updates = payloadRecord(payload.updates);
-  const shiftByDays =
-    typeof updates.shiftByDays === 'number' && Number.isFinite(updates.shiftByDays)
-      ? Math.round(updates.shiftByDays)
-      : 0;
-  const updated: SyllabusCalendarEvent = {
-    ...target,
-    title: payloadString(updates.title) || payloadString(payload.title) || target.title,
-    date:
-      validDateKey(updates.date) ||
-      validDateKey(payload.date) ||
-      (shiftByDays
-        ? localDayKey(addCalendarDays(new Date(`${target.date}T12:00:00`), shiftByDays))
-        : target.date),
-    durationMinutes:
-      typeof updates.durationMinutes === 'number' && Number.isFinite(updates.durationMinutes)
-        ? Math.max(5, Math.round(updates.durationMinutes))
-        : typeof payload.durationMinutes === 'number' && Number.isFinite(payload.durationMinutes)
-          ? Math.max(5, Math.round(payload.durationMinutes))
-          : target.durationMinutes,
-    status:
-      updates.status === 'done' || updates.status === 'skipped' || updates.status === 'planned'
-        ? updates.status
-        : target.status,
-    rawText: payloadString(updates.reason) || payloadString(payload.reason) || target.rawText,
-  };
-  return {
-    events: args.events.map((event) => (event.id === target.id ? updated : event)),
-    updated,
-  };
-}
-
 function learningActionPreferredConcepts(action: LearningAction): string[] {
   const payload = actionPayload(action);
   const concepts = Array.isArray(payload.concepts) ? payload.concepts : [];
@@ -7454,10 +6779,10 @@ export function LearnPageClient() {
         const visibleRemotePlans = visiblePracticePlans(remotePlans, nextDeletedPlanIds);
         visibleRemotePlans.forEach(savePracticePlan);
         setRecentPlans(
-          mergePlans(visiblePracticePlans(localPlans, nextDeletedPlanIds), visibleRemotePlans).slice(
-            0,
-            4,
-          ),
+          mergePlans(
+            visiblePracticePlans(localPlans, nextDeletedPlanIds),
+            visibleRemotePlans,
+          ).slice(0, 4),
         );
       })
       .catch(() => {});
@@ -9406,9 +8731,8 @@ export function LearnPageClient() {
         }
 
         if (action.kind === 'calendar.propose_delete') {
-          const targets = actionTargets(action);
-          const matches = uniqueCalendarTargetMatches(syllabusEvents, targets);
-          if (matches.length !== 1) {
+          const deleteResult = applyLearningCalendarDelete({ events: syllabusEvents, action });
+          if (!deleteResult) {
             setRightRailCollapsed(false);
             setRightRailView('calendar');
             setCalendarDialogOpen(true);
@@ -9425,10 +8749,8 @@ export function LearnPageClient() {
             toast.error('这个删除操作没有命中唯一事项，请在日历里手动确认。');
             return;
           }
-          const targetId = matches[0].id;
-          const nextEvents = syllabusEvents.filter((event) => event.id !== targetId);
-          writeSyllabusEvents(localUserId, activeCourseId, nextEvents);
-          setSyllabusEvents(nextEvents);
+          writeSyllabusEvents(localUserId, activeCourseId, deleteResult.events);
+          setSyllabusEvents(deleteResult.events);
           setRightRailCollapsed(false);
           setRightRailView('calendar');
           markLearningActionStatus(
@@ -9438,7 +8760,7 @@ export function LearnPageClient() {
               status: 'completed',
               summary: '已删除 1 个日历事项。',
               input: { payload: action.payload || {} },
-              output: { eventId: targetId },
+              output: { eventId: deleteResult.deleted.id },
             }),
           );
           toast.success('已删除 1 个日历事项。');

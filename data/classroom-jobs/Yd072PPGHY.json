@@ -1,0 +1,26 @@
+{
+  "id": "Yd072PPGHY",
+  "status": "succeeded",
+  "step": "completed",
+  "progress": 100,
+  "message": "Classroom generation completed",
+  "createdAt": "2026-05-18T07:23:15.531Z",
+  "updatedAt": "2026-05-18T07:25:44.302Z",
+  "inputSummary": {
+    "requirementPreview": "请根据上传的 MAT 136 Week 1 定积分讲义，生成一整节 OpenMAIC 多页面课堂。保留讲义主线：面积近似、左/右黎曼和、定积分定义、性质和典型题。中文讲解，面向 UTM MAT 136 学生。",
+    "language": "zh-CN",
+    "hasPdf": true,
+    "pdfTextLength": 8596,
+    "pdfImageCount": 103,
+    "slideGenerationRoute": "openmaic-legacy"
+  },
+  "scenesGenerated": 8,
+  "startedAt": "2026-05-18T07:23:15.548Z",
+  "totalScenes": 8,
+  "completedAt": "2026-05-18T07:25:44.300Z",
+  "result": {
+    "classroomId": "8NY4fWkQuD",
+    "url": "http://localhost:3000/classroom/8NY4fWkQuD",
+    "scenesCount": 8
+  }
+}

@@ -12,6 +12,29 @@ function requireDatabaseUrl(): string {
       'DATABASE_URL 未设置：请在 .env.local 中配置 PostgreSQL；若刚修改过，请停止所有 pnpm dev，删除 .next 后再启动。',
     );
   }
+
+  // Railway's public TCP proxy requires TLS. Its development certificate is
+  // not trusted by Prisma when the URL omits sslmode, which otherwise looks
+  // like a generic P1001 "database server unreachable" error. Keep production
+  // configuration explicit, but make local development match Railway's
+  // connection contract.
+  if (process.env.NODE_ENV !== 'production' && /\.proxy\.rlwy\.net(?::\d+)?(?:\/|$)/i.test(u)) {
+    const railwayUrl = new URL(u);
+    if (!railwayUrl.searchParams.has('sslmode')) {
+      railwayUrl.searchParams.set('sslmode', 'prefer');
+    }
+    if (!railwayUrl.searchParams.has('connection_limit')) {
+      railwayUrl.searchParams.set('connection_limit', '3');
+    }
+    if (!railwayUrl.searchParams.has('pool_timeout')) {
+      railwayUrl.searchParams.set('pool_timeout', '30');
+    }
+    if (!railwayUrl.searchParams.has('connect_timeout')) {
+      railwayUrl.searchParams.set('connect_timeout', '15');
+    }
+    return railwayUrl.toString();
+  }
+
   return u;
 }
 

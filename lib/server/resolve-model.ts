@@ -7,7 +7,11 @@
 
 import type { NextRequest } from 'next/server';
 import { parseModelString } from '@/lib/ai/providers';
-import { getServerModel, type ModelWithInfo } from '@/lib/ai/server-model';
+import {
+  getServerModel,
+  getServerOpenAIResponsesModel,
+  type ModelWithInfo,
+} from '@/lib/ai/server-model';
 import {
   NOTEBOOK_GENERATION_MODEL_STAGE_HEADER_KEYS,
   type NotebookGenerationModelStage,
@@ -90,6 +94,38 @@ export async function resolveModelFromHeaders(
     },
     options,
   );
+}
+
+/** Resolve the system-managed native OpenAI Responses model for PDF/file inputs. */
+export async function resolveOpenAIResponsesModelFromHeaders(
+  req: NextRequest,
+  options: ResolveModelOptions = {},
+): Promise<ResolvedModel> {
+  const config = await getSystemLLMRuntimeConfig();
+  let modelId = config.modelId;
+  const requestedModelString = req.headers.get('x-model')?.trim();
+  if (options.allowOpenAIModelOverride && requestedModelString) {
+    const requested = parseModelString(requestedModelString);
+    if (requested.providerId === 'openai' && requested.modelId.trim()) {
+      modelId = requested.modelId.trim();
+    }
+  }
+  const modelString = `openai:${modelId}`;
+  const { model, modelInfo } = getServerOpenAIResponsesModel({
+    providerId: 'openai',
+    modelId,
+    apiKey: config.apiKey,
+    baseUrl: config.baseUrl,
+    providerType: 'openai',
+    requiresApiKey: true,
+  });
+  return {
+    model,
+    modelInfo,
+    modelString,
+    providerId: 'openai',
+    apiKey: config.apiKey,
+  };
 }
 
 /**

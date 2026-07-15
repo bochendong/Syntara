@@ -1,0 +1,315 @@
+{
+  "id": "nb-ppt-master-layout-demo",
+  "stage": {
+    "id": "nb-ppt-master-layout-demo",
+    "courseId": "course-layout-render-lab",
+    "name": "PPT Master 普通版式 Render Demo",
+    "description": "A render-only notebook for the PPT Master inspired classic lecture templates.",
+    "tags": [
+      "layout",
+      "classic-ppt",
+      "semantic-render"
+    ],
+    "avatarUrl": "/avatars/notebook-agents/avatar4.avif",
+    "language": "zh-CN",
+    "style": "classic-ppt-layout-demo",
+    "createdAt": 1778100237311,
+    "updatedAt": 1778100237311
+  },
+  "scenes": [
+    {
+      "id": "nb-ppt-master-layout-demo-p01",
+      "stageId": "nb-ppt-master-layout-demo",
+      "title": "Pipeline + Table：流程在上，对照表在下",
+      "type": "slide",
+      "order": 0,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-layout-demo-p01",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "disciplineStyle": "general",
+          "teachingFlow": "comparison_review",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "comparison",
+          "layoutTemplate": "pipeline_table",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Pipeline + Table：流程在上，对照表在下",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "这类页适合解释一个工作流、一个概念拆解，或“为什么旧表示法会失败”。先让学生看到结构，再用表格固定判断标准。"
+            },
+            {
+              "type": "process_flow",
+              "title": "讲授顺序",
+              "orientation": "horizontal",
+              "context": [],
+              "steps": [
+                {
+                  "title": "1. 入口",
+                  "detail": "从一个具体例子开始，不先抛术语"
+                },
+                {
+                  "title": "2. 拆结构",
+                  "detail": "把对象需要维护的字段列清楚"
+                },
+                {
+                  "title": "3. 查风险",
+                  "detail": "指出 list / dict 仍会接受的错误状态"
+                },
+                {
+                  "title": "4. 定模型",
+                  "detail": "自然引出类、实例、属性和操作"
+                }
+              ],
+              "summary": "流程承担故事线，表格承担判断依据。"
+            },
+            {
+              "type": "table",
+              "caption": "普通 PPT 页应该把判断标准显性化，而不是堆成长段文字",
+              "headers": [
+                "页面区块",
+                "输入",
+                "主要任务",
+                "输出",
+                "为什么有用"
+              ],
+              "rows": [
+                [
+                  "入口",
+                  "Tweet()",
+                  "建立共同例子",
+                  "学生知道对象是什么",
+                  "降低突兀感"
+                ],
+                [
+                  "流程",
+                  "2-4 步",
+                  "展示判断顺序",
+                  "课堂节奏",
+                  "适合口头讲解"
+                ],
+                [
+                  "表格",
+                  "4-6 行",
+                  "对齐概念差异",
+                  "可扫描依据",
+                  "避免长文"
+                ],
+                [
+                  "结论",
+                  "一句话",
+                  "收束到下一页",
+                  "清晰转场",
+                  "减少半成品感"
+                ]
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-layout-demo-p02",
+      "stageId": "nb-ppt-master-layout-demo",
+      "title": "Visual + Three Steps：图示先占位，三步再解释",
+      "type": "slide",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-layout-demo-p02",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "disciplineStyle": "general",
+          "teachingFlow": "concept_explain",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "visual_split",
+          "layoutTemplate": "visual_three_steps",
+          "density": "standard",
+          "visualRole": "diagram",
+          "overflowPolicy": "compress_first",
+          "archetype": "concept",
+          "title": "Visual + Three Steps：图示先占位，三步再解释",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "这类页适合“左上解释、右上图示、下方三步卡片”。它不是为了装饰，而是为了让一个抽象过程有可指认的形状。"
+            },
+            {
+              "type": "visual",
+              "source": "data:image/svg+xml;charset=utf-8,%0A%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20900%20300%22%3E%0A%20%20%3Crect%20width%3D%22900%22%20height%3D%22300%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%3Cg%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22700%22%3E%0A%20%20%20%20%3Crect%20x%3D%2236%22%20y%3D%2272%22%20width%3D%22190%22%20height%3D%22104%22%20rx%3D%2214%22%20fill%3D%22%23dbeafe%22%20stroke%3D%22%23bfdbfe%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%20%20%3Ctext%20x%3D%22131%22%20y%3D%22118%22%20text-anchor%3D%22middle%22%20fill%3D%22%232563eb%22%3ESource%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x%3D%22131%22%20y%3D%22150%22%20text-anchor%3D%22middle%22%20font-size%3D%2216%22%20font-weight%3D%22500%22%20fill%3D%22%23374151%22%3Eraw%20material%3C%2Ftext%3E%0A%20%20%20%20%3Cpath%20d%3D%22M250%20124%20L322%20124%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M322%20124%20L306%20112%20M322%20124%20L306%20136%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22344%22%20y%3D%2272%22%20width%3D%22190%22%20height%3D%22104%22%20rx%3D%2214%22%20fill%3D%22%23dcfce7%22%20stroke%3D%22%23bbf7d0%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%20%20%3Ctext%20x%3D%22439%22%20y%3D%22118%22%20text-anchor%3D%22middle%22%20fill%3D%22%2316a34a%22%3EStructure%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x%3D%22439%22%20y%3D%22150%22%20text-anchor%3D%22middle%22%20font-size%3D%2216%22%20font-weight%3D%22500%22%20fill%3D%22%23374151%22%3Efields%20%2B%20rules%3C%2Ftext%3E%0A%20%20%20%20%3Cpath%20d%3D%22M558%20124%20L630%20124%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M630%20124%20L614%20112%20M630%20124%20L614%20136%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22652%22%20y%3D%2272%22%20width%3D%22190%22%20height%3D%22104%22%20rx%3D%2214%22%20fill%3D%22%23fef3c7%22%20stroke%3D%22%23fde68a%22%20stroke-width%3D%223%22%2F%3E%0A%20%20%20%20%3Ctext%20x%3D%22747%22%20y%3D%22118%22%20text-anchor%3D%22middle%22%20fill%3D%22%23a16207%22%3EBehavior%3C%2Ftext%3E%0A%20%20%20%20%3Ctext%20x%3D%22747%22%20y%3D%22150%22%20text-anchor%3D%22middle%22%20font-size%3D%2216%22%20font-weight%3D%22500%22%20fill%3D%22%23374151%22%3Esafe%20operations%3C%2Ftext%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Ctext%20x%3D%22450%22%20y%3D%22238%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2218%22%20fill%3D%22%236b7280%22%3EA%20conventional%20PPT%20diagram%3A%20visible%20structure%20first%2C%20details%20second.%3C%2Ftext%3E%0A%3C%2Fsvg%3E",
+              "alt": "Source to structure to behavior diagram",
+              "caption": "图示只承担结构关系，不替代正文。",
+              "role": "diagram",
+              "fit": "contain",
+              "emphasis": "primary"
+            },
+            {
+              "type": "layout_cards",
+              "columns": 3,
+              "items": [
+                {
+                  "title": "先定对象",
+                  "text": "学生先回答：我们正在维护的东西是什么？",
+                  "tone": "info"
+                },
+                {
+                  "title": "再定状态",
+                  "text": "哪些值必须一起存在，后面还会被读取或修改？",
+                  "tone": "success"
+                },
+                {
+                  "title": "最后定规则",
+                  "text": "哪些错误状态旧表示法仍然会接受？",
+                  "tone": "warning"
+                }
+              ]
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    },
+    {
+      "id": "nb-ppt-master-layout-demo-p03",
+      "stageId": "nb-ppt-master-layout-demo",
+      "title": "Two-by-One Summary：两栏判断，底部收束",
+      "type": "slide",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "slide_nb-ppt-master-layout-demo-p03",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#2563eb",
+              "#dc2626",
+              "#f59e0b",
+              "#16a34a",
+              "#1f2937"
+            ],
+            "fontColor": "#1f2937",
+            "fontName": "Microsoft YaHei"
+          },
+          "elements": [],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "type": "content"
+        },
+        "semanticDocument": {
+          "version": 1,
+          "language": "zh-CN",
+          "profile": "general",
+          "disciplineStyle": "general",
+          "teachingFlow": "comparison_review",
+          "layout": {
+            "mode": "stack"
+          },
+          "layoutFamily": "summary",
+          "layoutTemplate": "two_by_one_summary",
+          "density": "standard",
+          "visualRole": "none",
+          "overflowPolicy": "compress_first",
+          "archetype": "summary",
+          "title": "Two-by-One Summary：两栏判断，底部收束",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "生成侧要负责的事",
+              "text": "明确本页任务、可用输入和输出结构；给出短要点、表格行、步骤卡片，而不是把讲解稿塞进 slide。"
+            },
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "渲染侧要负责的事",
+              "text": "固定版心、标题区、内容区和字号层级；保证普通讲授页一屏展示，不靠续页或长滚动兜底。"
+            },
+            {
+              "type": "callout",
+              "tone": "success",
+              "title": "最后判断",
+              "text": "一页只承担一个课堂动作：引入、比较、追踪、总结。普通版式要让学生一眼看见页面结构。"
+            }
+          ]
+        },
+        "semanticRenderVersion": 0,
+        "semanticRenderMode": "auto",
+        "webRenderMode": "slide"
+      },
+      "actions": [],
+      "whiteboards": []
+    }
+  ],
+  "createdAt": "2026-05-06T20:43:57.311Z"
+}

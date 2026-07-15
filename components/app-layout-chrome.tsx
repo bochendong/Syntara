@@ -69,6 +69,7 @@ function isTestSurface(pathname: string | null): boolean {
   if (!pathname) return false;
   return (
     pathname === '/test' ||
+    pathname.startsWith('/test/') ||
     pathname === '/generation-quality' ||
     pathname === '/generation-tests' ||
     /^\/[^/]+-test(?:\/|$)/.test(pathname)
@@ -123,6 +124,7 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
   const isProfile = pathname === '/profile' || pathname?.startsWith('/profile/');
   const isStore = pathname === '/store' || Boolean(pathname?.startsWith('/store/'));
   const isTestPage = isTestSurface(pathname);
+  const isCsc148LocalPage = pathname === '/csc148' || Boolean(pathname?.startsWith('/csc148/'));
   const isCourseHome = pathname != null && /^\/course\/[^/]+\/?$/.test(pathname);
   const isCourseProblemDetail =
     pathname != null && /^\/course\/[^/]+\/problem-bank\/[^/]+\/?$/.test(pathname);
@@ -217,6 +219,10 @@ export function AppLayoutChrome({ children }: { children: ReactNode }) {
         {children}
       </MainShellNoRail>,
     );
+  }
+
+  if (isCsc148LocalPage) {
+    return <MainShellNoRail balancedInset>{children}</MainShellNoRail>;
   }
 
   if (isNotebookCreatePage) {

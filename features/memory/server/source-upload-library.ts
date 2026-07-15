@@ -1,7 +1,8 @@
 import { Prisma, type PrismaClient } from '@/lib/server/generated-prisma';
 import { refreshCourseSummaryFields } from '@/lib/server/repositories/notebook-repository';
 import { ensureKnowledgeCacheTable } from '@/features/memory/server/knowledge-cache';
-import { resolveApiKey } from '@/lib/server/provider-config';
+import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
+import { proxyFetch } from '@/lib/server/proxy-fetch';
 
 export type CourseSourceUploadRecord = {
   sourceHash: string;
@@ -625,19 +626,19 @@ async function refreshNotebookSummariesAfterSourceDelete(args: {
 async function deleteOpenAIUserFiles(fileIds: string[]): Promise<number> {
   const uniqueFileIds = Array.from(new Set(fileIds.map((id) => id.trim()).filter(Boolean)));
   if (uniqueFileIds.length === 0) return 0;
-  const apiKey = resolveApiKey('openai');
-  if (!apiKey) return 0;
+  const config = await getSystemLLMRuntimeConfig();
+  if (!config.apiKey) return 0;
+  const baseUrl = config.baseUrl?.replace(/\/+$/, '') || 'https://api.openai.com/v1';
+  if (!/api\.openai\.com\/v1$/.test(baseUrl)) return 0;
 
   let deleted = 0;
   for (const fileId of uniqueFileIds) {
     try {
-      const response = await fetch(
-        `https://api.openai.com/v1/files/${encodeURIComponent(fileId)}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${apiKey}` },
-        },
-      );
+      const response = await proxyFetch(`${baseUrl}/files/${encodeURIComponent(fileId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+        signal: AbortSignal.timeout(30_000),
+      });
       if (response.ok) deleted += 1;
     } catch {
       /* Best-effort cleanup; local source deletion should still succeed. */

@@ -1,0 +1,20 @@
+{
+  "id": "68zdH9eUud",
+  "status": "failed",
+  "step": "failed",
+  "progress": 15,
+  "message": "Classroom generation failed",
+  "createdAt": "2026-04-02T19:51:16.862Z",
+  "updatedAt": "2026-04-02T19:51:18.105Z",
+  "inputSummary": {
+    "requirementPreview": "Create a very short introductory classroom in English about photosynthesis for middle school students. Keep it concise and beginner-friendly.",
+    "language": "en-US",
+    "hasPdf": false,
+    "pdfTextLength": 0,
+    "pdfImageCount": 0
+  },
+  "scenesGenerated": 0,
+  "startedAt": "2026-04-02T19:51:16.873Z",
+  "completedAt": "2026-04-02T19:51:18.104Z",
+  "error": "AI_APICallError: Incorrect API key provided: sk-proj-********************************************************************************************************************************************************HL0A. You can find your API key at https://platform.openai.com/account/api-keys."
+}

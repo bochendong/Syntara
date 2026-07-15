@@ -72,6 +72,9 @@ next-env.d.ts
 
 # generated data
 /data
+!/data/
+!/data/csc148/
+!/data/csc148/**
 /logs
 /OpenMAIC-org
 /outputs
@@ -81,6 +84,8 @@ next-env.d.ts
 
 # docs
 /docs/*
+!/docs/api/
+!/docs/api/**
 !/docs/course-settings-generation-effects.md
 !/docs/generation-chain/
 !/docs/generation-chain/**

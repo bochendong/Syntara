@@ -133,6 +133,8 @@ export interface ImageGenerationConfig {
   baseUrl?: string;
   /** Optional model ID override (uses provider default if omitted) */
   model?: string;
+  /** Optional request implementation for server-side proxy-aware calls. */
+  fetch?: typeof fetch;
 }
 
 /**
@@ -154,7 +156,33 @@ export interface ImageGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style (must be supported by the chosen provider) */
   style?: string;
+  /** Provider output quality. Lower quality reduces latency and cost. */
+  quality?: 'low' | 'medium' | 'high' | 'auto';
 }
+
+export type StudyCoverOverlaySpec = {
+  title: string;
+  courseLabel?: string;
+  routeTitle: string;
+  routeItems: string[];
+  sideTitle?: string;
+  sideItems?: string[];
+  footerTitle: string;
+  footerText: string;
+  definition?: string;
+  methods?: Array<{
+    name: string;
+    trigger: string;
+    rule: string;
+    boundary: string;
+  }>;
+  keyPoints?: Array<{
+    title: string;
+    detail: string;
+  }>;
+  learningSteps?: string[];
+  keywords?: string[];
+};
 
 /**
  * Image Generation Result

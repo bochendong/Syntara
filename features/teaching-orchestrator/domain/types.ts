@@ -25,6 +25,7 @@ export type TeachingAction =
 export type TeachingEvidenceSourceType =
   | 'control_fact'
   | 'memory'
+  | 'conversation'
   | 'schedule'
   | 'problem_attempt'
   | 'problem_bank'

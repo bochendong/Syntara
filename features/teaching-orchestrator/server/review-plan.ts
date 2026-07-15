@@ -103,6 +103,17 @@ type RecentAttemptRow = {
   };
 };
 
+type RecentConversationMessageRow = {
+  id: string;
+  role: string;
+  plainText: string | null;
+  createdAt: Date;
+  conversation: {
+    id: string;
+    title: string | null;
+  };
+};
+
 const TEMPLATE_RE = /模板|模版|recipe|contract|invariant|ri|htdf|htdd|docstring|rubric|检查清单/i;
 
 function compact(input: unknown, maxChars: number): string {
@@ -492,6 +503,66 @@ async function recentAttemptEvidence(args: {
   });
 }
 
+async function recentConversationEvidence(args: {
+  userId: string;
+  targetType: 'course' | 'notebook';
+  targetId: string;
+}): Promise<TeachingEvidence[]> {
+  const rows = (await prisma.message.findMany({
+    where: {
+      ownerId: args.userId,
+      role: { in: ['user', 'assistant'] },
+      plainText: { not: null },
+      conversation:
+        args.targetType === 'course' ? { courseId: args.targetId } : { notebookId: args.targetId },
+    },
+    select: {
+      id: true,
+      role: true,
+      plainText: true,
+      createdAt: true,
+      conversation: { select: { id: true, title: true } },
+    },
+    orderBy: [{ createdAt: 'desc' }],
+    take: 16,
+  })) as RecentConversationMessageRow[];
+
+  return rows
+    .filter((row) => row.plainText?.trim())
+    .map((row) => ({
+      id: evidenceId('conversation', row.id),
+      sourceType: 'conversation',
+      sourceId: row.id,
+      title: row.conversation.title || (row.role === 'user' ? '最近提问' : '最近回答'),
+      excerpt: compact(`${row.role === 'user' ? '学生' : '助教'}：${row.plainText}`, 900),
+      reason:
+        row.role === 'user'
+          ? '这是正式课程对话里最近的学生提问，可用于判断仍在追问或混淆的知识点。'
+          : '这是正式课程对话里的最近回答，可用于避免复习计划重复或遗漏已讲内容。',
+      confidence: row.role === 'user' ? 0.82 : 0.68,
+      target: { type: 'conversation', id: row.conversation.id },
+      occurredAt: row.createdAt.toISOString(),
+      conceptTags: [],
+      metadata: { role: row.role },
+    }));
+}
+
+function attachConversationConceptTags(
+  evidence: TeachingEvidence[],
+  problems: NotebookProblemSummary[],
+): TeachingEvidence[] {
+  const courseTags = Array.from(new Set(problems.flatMap((problem) => problem.tags)));
+  return evidence.map((item) => {
+    const haystack = `${item.title}\n${item.excerpt}`.toLowerCase();
+    return {
+      ...item,
+      conceptTags: courseTags
+        .filter((tag) => tag.length >= 2 && haystack.includes(tag.toLowerCase()))
+        .slice(0, 8),
+    };
+  });
+}
+
 function scoreConcepts(args: {
   evidence: TeachingEvidence[];
   problems: NotebookProblemSummary[];
@@ -508,11 +579,13 @@ function scoreConcepts(args: {
           : 6
         : item.sourceType === 'schedule'
           ? 3
-          : item.sourceType === 'template'
-            ? 4
-            : item.sourceType === 'memory' || item.sourceType === 'control_fact'
+          : item.sourceType === 'conversation'
+            ? 3
+            : item.sourceType === 'template'
               ? 4
-              : 2;
+              : item.sourceType === 'memory' || item.sourceType === 'control_fact'
+                ? 4
+                : 2;
     for (const tag of item.conceptTags || []) {
       addConceptScore(
         scores,
@@ -682,6 +755,9 @@ function rationaleLines(args: {
   const memoryCount = args.evidence.filter(
     (item) => item.sourceType === 'memory' || item.sourceType === 'control_fact',
   ).length;
+  const conversationCount = args.evidence.filter(
+    (item) => item.sourceType === 'conversation',
+  ).length;
   const templateCount = args.evidence.filter((item) => item.sourceType === 'template').length;
   const topConcepts = args.concepts.slice(0, 3).map((item) => item.concept);
   if (topConcepts.length) {
@@ -691,6 +767,8 @@ function rationaleLines(args: {
   }
   if (attemptCount > 0) lines.push(`我参考了 ${attemptCount} 条最近作答/错题证据来排序薄弱点。`);
   if (memoryCount > 0) lines.push(`我参考了 ${memoryCount} 条学习记忆或结构化事实来判断当前状态。`);
+  if (conversationCount > 0)
+    lines.push(`我参考了 ${conversationCount} 条正式课程问答记录来判断最近卡点。`);
   if (templateCount > 0)
     lines.push(`我参考了 ${templateCount} 条模板/答题合约，避免复习计划偏离课程要求。`);
   if (args.questions.length > 0) {
@@ -715,7 +793,7 @@ export async function generateEvidenceBasedReviewPlan(args: {
   const query = args.query.trim() || '帮我制定今天的复习计划';
   const workflow = resolveFixedReviewWorkflow({ query });
 
-  const [memoryContext, problems, attemptEvidenceItems] = await Promise.all([
+  const [memoryContext, problems, attemptEvidenceItems, rawConversationItems] = await Promise.all([
     buildLayeredMemoryRecallContext({
       targetType: args.targetType,
       targetId: args.targetId,
@@ -731,6 +809,11 @@ export async function generateEvidenceBasedReviewPlan(args: {
       targetType: args.targetType,
       targetId: args.targetId,
     }),
+    recentConversationEvidence({
+      userId: args.userId,
+      targetType: args.targetType,
+      targetId: args.targetId,
+    }),
   ]);
 
   const scheduleItems = scheduleEvidence({
@@ -739,8 +822,15 @@ export async function generateEvidenceBasedReviewPlan(args: {
     query,
   });
   const memoryItems = memoryEvidenceFromContext(memoryContext);
+  const conversationItems = attachConversationConceptTags(rawConversationItems, problems);
   const problemItems = problemBankEvidence(problems);
-  const evidence = [...scheduleItems, ...attemptEvidenceItems, ...memoryItems, ...problemItems];
+  const evidence = [
+    ...scheduleItems,
+    ...attemptEvidenceItems,
+    ...conversationItems,
+    ...memoryItems,
+    ...problemItems,
+  ];
 
   const concepts = scoreConcepts({ evidence, problems, query });
   const questions = selectQuestions({ concepts, problems, questionCount });
@@ -799,9 +889,9 @@ export async function generateEvidenceBasedReviewPlan(args: {
     },
     {
       toolId: 'search_teaching_memory',
-      purpose: '读取分层记忆、模板、cache 和课程材料证据',
+      purpose: '读取分层记忆、正式问答记录、模板、cache 和课程材料证据',
       inputSummary: `${args.targetType}:${args.targetId}`,
-      outputEvidenceIds: memoryItems.map((item) => item.id),
+      outputEvidenceIds: [...conversationItems, ...memoryItems].map((item) => item.id),
     },
     {
       toolId: 'search_problem_attempts',

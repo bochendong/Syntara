@@ -26,6 +26,7 @@ function shouldSuppressNotificationCenter(pathname: string | null): boolean {
   return Boolean(
     pathname === '/' ||
       pathname === '/test' ||
+      pathname?.startsWith('/test/') ||
       pathname === '/generation-tests' ||
       pathname === '/generation-quality' ||
       /^\/[^/]+-test(?:\/|$)/.test(pathname || '') ||

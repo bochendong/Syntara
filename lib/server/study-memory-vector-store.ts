@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import OpenAI from 'openai';
 import type { PrismaClient } from '@/lib/server/generated-prisma';
 import { createLogger } from '@/lib/logger';
+import { proxyFetch } from '@/lib/server/proxy-fetch';
 import { getSystemLLMRuntimeConfig } from '@/lib/server/system-llm-config';
 
 const log = createLogger('StudyMemoryVectorStore');
@@ -165,6 +166,9 @@ async function getOpenAIClient(): Promise<OpenAI | null> {
       return new OpenAI({
         apiKey: config.apiKey,
         baseURL: config.baseUrl || undefined,
+        fetch: proxyFetch as typeof fetch,
+        timeout: 30_000,
+        maxRetries: 1,
       });
     })().catch((error) => {
       openaiClientPromise = null;

@@ -1,0 +1,4489 @@
+{
+  "schemaVersion": 1,
+  "courseCode": "MAT136",
+  "courseName": "Calculus II",
+  "source": "db-v2-critical-export-smoke",
+  "sourceExportedAt": "2026-06-04T07:40:00.939Z",
+  "generatedAt": "2026-07-12T08:00:14.101Z",
+  "problemCount": 177,
+  "problems": [
+    {
+      "id": "prob-mat136-week1-riemann-docx-002",
+      "order": 1,
+      "title": "Charles 跑步距离的右端点和",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "右端点和",
+        "速度面积",
+        "黎曼和"
+      ],
+      "question": "Charles the cougar runs with velocity $v(t)=6\\sqrt{t}$ metres per second. Which expression is a right-hand sum estimating the distance from $t=2$ to $t=4$ seconds?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Charles the cougar runs with velocity $v(t)=6\\sqrt{t}$ metres per second. Which expression is a right-hand sum estimating the distance from $t=2$ to $t=4$ seconds?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$\\sum_{i=0}^{3}6\\sqrt{\\frac{i}{2}}\\cdot\\frac{1}{2}$"
+          },
+          {
+            "id": "B",
+            "label": "$\\sum_{i=1}^{4}6\\sqrt{\\frac{i}{2}}\\cdot\\frac{1}{2}$"
+          },
+          {
+            "id": "C",
+            "label": "$\\sum_{i=2}^{4}6\\sqrt{\\frac{i}{2}}\\cdot\\frac{1}{2}$"
+          },
+          {
+            "id": "D",
+            "label": "$\\sum_{i=4}^{8}6\\sqrt{\\frac{i}{2}}\\cdot\\frac{1}{2}$"
+          },
+          {
+            "id": "E",
+            "label": "$\\sum_{i=5}^{8}6\\sqrt{\\frac{i}{2}}\\cdot\\frac{1}{2}$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "prob-mat136-week2-substitution-answered-pdf-004",
+      "order": 3,
+      "title": "换元法应用：asteroid 面积",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "换元法",
+        "面积",
+        "对称性",
+        "定积分应用"
+      ],
+      "question": "Given that\n\n$$\\int_0^1\\left(1-x^{2/3}\\right)^{3/2}\\,dx=\\frac{3\\pi}{32},$$\n\ncompute the area inside the asteroid\n\n$$x^{2/3}+y^{2/3}=a^{2/3}.$$",
+      "publicContent": {
+        "type": "calculation",
+        "stem": "Given that\n\n$$\\int_0^1\\left(1-x^{2/3}\\right)^{3/2}\\,dx=\\frac{3\\pi}{32},$$\n\ncompute the area inside the asteroid\n\n$$x^{2/3}+y^{2/3}=a^{2/3}.$$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe86500018onoiavf1jys",
+      "order": 4,
+      "title": "Distance Between Traffic Lights",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "calculation",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "kinematics",
+        "distance"
+      ],
+      "question": "A car is standing at a traffic light. When the light turns green, the car’s velocity increases at a constant rate for $12\\,\\mathrm{seconds}$ until it reaches a speed of $60 \\, \\mathrm{km/h}$. It travels at a constant velocity for another $10\\,\\mathrm{seconds}$. As the car approaches the next traffic light, it brakes for $3\\,\\mathrm{seconds}$ and its velocity decreases to $0$ at a constant rate. Find the distance between the two traffic lights.",
+      "publicContent": {
+        "type": "calculation",
+        "stem": "A car is standing at a traffic light. When the light turns green, the car’s velocity increases at a constant rate for $12\\,\\mathrm{seconds}$ until it reaches a speed of $60 \\, \\mathrm{km/h}$. It travels at a constant velocity for another $10\\,\\mathrm{seconds}$. As the car approaches the next traffic light, it brakes for $3\\,\\mathrm{seconds}$ and its velocity decreases to $0$ at a constant rate. Find the distance between the two traffic lights."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe88500038onot54qjdoz",
+      "order": 5,
+      "title": "Equal Distance Bicyclists",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "kinematics",
+        "bicyclists"
+      ],
+      "question": "Two bicyclists begin travelling in the same direction from the same point at time $t = 0$ seconds. Bicyclist A travels with a velocity of $(t + 1)\\,\\mathrm{m/s}$. Bicyclist B begins travelling with a velocity of $(2t)\\,\\mathrm{m/s}$ for $5\\,\\mathrm{seconds}$ and then travels with a velocity of $10\\,\\mathrm{m/s}$. Find all times, in seconds, when the bicyclists are an equal distance from the starting point. How far did each of them travel at that time?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Two bicyclists begin travelling in the same direction from the same point at time $t = 0$ seconds. Bicyclist A travels with a velocity of $(t + 1)\\,\\mathrm{m/s}$. Bicyclist B begins travelling with a velocity of $(2t)\\,\\mathrm{m/s}$ for $5\\,\\mathrm{seconds}$ and then travels with a velocity of $10\\,\\mathrm{m/s}$. Find all times, in seconds, when the bicyclists are an equal distance from the starting point. How far did each of them travel at that time?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "prob-mat136-p1-004-water-leak-left-sum",
+      "order": 6,
+      "title": "漏水速率：$f(t)=\\sin(2t)+1$ 的左端点和",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "黎曼和",
+        "左端点",
+        "应用题"
+      ],
+      "question": "A tank of water leaks at rate $f(t)=(\\sin(2t)+1)\\,\\mathrm{L/h}$. \n\nThe total amount leaked on $[a,b]$ is the area between the graph of $f(t)$ and the $t$-axis on $[a,b]$. \nApproximate the total amount of water leaked in the first $3\\,\\mathrm{hours}$ using a Riemann sum with 6 intervals and left endpoints.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "A tank of water leaks at rate $f(t)=(\\sin(2t)+1)\\,\\mathrm{L/h}$. \n\nThe total amount leaked on $[a,b]$ is the area between the graph of $f(t)$ and the $t$-axis on $[a,b]$. \nApproximate the total amount of water leaked in the first $3\\,\\mathrm{hours}$ using a Riemann sum with 6 intervals and left endpoints."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe89700058onom0sixb14",
+      "order": 6,
+      "title": "Limit of Riemann Sum as Integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "Riemann sum",
+        "integral"
+      ],
+      "question": "Write each integral below as the limit of a Riemann sum using right endpoints.\n\na) $\\int_{2}^{4} \\frac{2}{(1 + x^2)^{2}} \\, dx$.\n\nb) $\\int_{1}^{2} 2 \\ln(3x) \\, dx$.\n\nc) $\\int_{0}^{100} e^{-x^{2}} \\, dx$.\n\nd) $\\int_{-\\pi}^{\\pi} \\sin(x + 1) \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Write each integral below as the limit of a Riemann sum using right endpoints.\n\na) $\\int_{2}^{4} \\frac{2}{(1 + x^2)^{2}} \\, dx$.\n\nb) $\\int_{1}^{2} 2 \\ln(3x) \\, dx$.\n\nc) $\\int_{0}^{100} e^{-x^{2}} \\, dx$.\n\nd) $\\int_{-\\pi}^{\\pi} \\sin(x + 1) \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8aa00078onoaxibnhwx",
+      "order": 7,
+      "title": "Integral from Riemann Sum Limit",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "Riemann sum",
+        "integral"
+      ],
+      "question": "For each limit of a Riemann sum below, write an integral that is equal to it.\n\na) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i}{n}\\right)$.\n\nb) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i^2}{n^2}\\right)$.\n\nc) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i^2}{n}\\right)$.\n\nd) $\\lim_{n \\to \\infty} \\sum_{i=0}^{n-1} \\frac{1}{n} \\left(7 - \\frac{5i^2}{n}\\right)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For each limit of a Riemann sum below, write an integral that is equal to it.\n\na) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i}{n}\\right)$.\n\nb) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i^2}{n^2}\\right)$.\n\nc) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\frac{5}{n} \\left(7 - \\frac{5i^2}{n}\\right)$.\n\nd) $\\lim_{n \\to \\infty} \\sum_{i=0}^{n-1} \\frac{1}{n} \\left(7 - \\frac{5i^2}{n}\\right)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8bc00098ono7fqmj4os",
+      "order": 8,
+      "title": "Evaluate Function Values from Riemann Sums",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "Riemann sum",
+        "function values"
+      ],
+      "question": "You are told the following information about a function:\n\n• $f(0) = 3$,\n\n• A left hand Riemann sum for $f(x)$ on the interval $[0, 8]$ using 4 subintervals gives a value of 30,\n\n• A right hand Riemann sum for $f(x)$ on the interval $[0, 8]$ using 4 subintervals gives a value of 48.\n\nUse the above information to evaluate the following two quantities:\n\na) $\\sum_{i=1}^{4} f(2i)$.\n\nb) $f(8)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "You are told the following information about a function:\n\n• $f(0) = 3$,\n\n• A left hand Riemann sum for $f(x)$ on the interval $[0, 8]$ using 4 subintervals gives a value of 30,\n\n• A right hand Riemann sum for $f(x)$ on the interval $[0, 8]$ using 4 subintervals gives a value of 48.\n\nUse the above information to evaluate the following two quantities:\n\na) $\\sum_{i=1}^{4} f(2i)$.\n\nb) $f(8)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8ce000b8onoyy64o721",
+      "order": 9,
+      "title": "Evaluate Integrals with Odd and Even Functions",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p1",
+        "定积分",
+        "integral",
+        "odd and even functions"
+      ],
+      "question": "Suppose that $f$ is an odd function, $g$ is an even function, and that both of them are continuous. Let $\\int_{-1}^{0} (f(x) + g(x)) \\, dx = 1$, $\\int_{-7}^{0} (f(x) + g(x)) \\, dx = 2$, $\\int_{0}^{7} f(x) \\, dx = 3$, and $\\int_{0}^{1} g(x) \\, dx = 4$. Evaluate the following:\n\na) $\\int_{0}^{1} (f(x) + g(x)) \\, dx$.\n\nb) $\\int_{-1}^{1} 2g(x) \\, dx$.\n\nc) $\\int_{-1}^{7} f(x) \\, dx$.\n\nd) $\\int_{0}^{7} (2f(x) - 3g(x)) \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose that $f$ is an odd function, $g$ is an even function, and that both of them are continuous. Let $\\int_{-1}^{0} (f(x) + g(x)) \\, dx = 1$, $\\int_{-7}^{0} (f(x) + g(x)) \\, dx = 2$, $\\int_{0}^{7} f(x) \\, dx = 3$, and $\\int_{0}^{1} g(x) \\, dx = 4$. Evaluate the following:\n\na) $\\int_{0}^{1} (f(x) + g(x)) \\, dx$.\n\nb) $\\int_{-1}^{1} 2g(x) \\, dx$.\n\nc) $\\int_{-1}^{7} f(x) \\, dx$.\n\nd) $\\int_{0}^{7} (2f(x) - 3g(x)) \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8lq000d8onokzs5qhkx",
+      "order": 10,
+      "title": "Fluid Loss in a Tank",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "A tank is leaking fluid at a rate of $R(t)\\,\\mathrm{m^3/h}$, where $t$ is measured in hours. (a) Write a definite integral that calculates the amount of fluid lost in the first $3\\,\\mathrm{hours}$. (b) If we know that $1 \\leq R(t) \\leq 3$ for $0 \\leq t \\leq 3$, give an upper and lower estimate of the amount of water lost in the first three hours.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "A tank is leaking fluid at a rate of $R(t)\\,\\mathrm{m^3/h}$, where $t$ is measured in hours. (a) Write a definite integral that calculates the amount of fluid lost in the first $3\\,\\mathrm{hours}$. (b) If we know that $1 \\leq R(t) \\leq 3$ for $0 \\leq t \\leq 3$, give an upper and lower estimate of the amount of water lost in the first three hours."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "prob-mat136-p1-010-recover-values-left-right-sums",
+      "order": 11,
+      "title": "由左/右黎曼和反推 $\\sum f(2i)$ 与 $f(8)$",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "左端点和",
+        "右端点和",
+        "函数值"
+      ],
+      "question": "You are told: $f(0)=3$; a left-hand Riemann sum for $f(x)$ on $[0,8]$ using 4 subintervals gives 30; a right-hand Riemann sum for $f(x)$ on $[0,8]$ using 4 subintervals gives 48. \n\nUse this information to evaluate:\n(a) $\\sum_{i=1}^{4} f(2i)$;\n(b) $f(8)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "You are told: $f(0)=3$; a left-hand Riemann sum for $f(x)$ on $[0,8]$ using 4 subintervals gives 30; a right-hand Riemann sum for $f(x)$ on $[0,8]$ using 4 subintervals gives 48. \n\nUse this information to evaluate:\n(a) $\\sum_{i=1}^{4} f(2i)$;\n(b) $f(8)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8mt000f8onoob5b987p",
+      "order": 11,
+      "title": "Population Growth Calculation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "微分方程",
+        "definite integral"
+      ],
+      "question": "Let $f(t)$ be the rate of change of earth’s population, where $t$ is measured in years. (a) Explain in words what is being calculated by the integral $$\\int_{2000}^{2025} f(t) \\, dt$$. (b) The population of the earth was 6.1 billion people in the year 2000. Write an expression for the population of earth in 2025 using the function $f(t)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(t)$ be the rate of change of earth’s population, where $t$ is measured in years. (a) Explain in words what is being calculated by the integral $$\\int_{2000}^{2025} f(t) \\, dt$$. (b) The population of the earth was 6.1 billion people in the year 2000. Write an expression for the population of earth in 2025 using the function $f(t)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8nv000h8onou4euydjl",
+      "order": 12,
+      "title": "Evaluate Integral Using Fundamental Theorem",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "fundamental theorem of calculu"
+      ],
+      "question": "In the following, let $f(x) = F'(x)$. Write the integral $\\int_{a}^{b} f(x) \\, dx$ and evaluate it using the fundamental theorem of calculus. (a) $F(x) = \\sin(\\pi x)$, with $a = -\\frac{1}{2}$ and $b = \\frac{1}{2}$. (b) $F(x) = 1 + x^2$, with $a = -5$ and $b = 7$. (c) $F(x) = \\sqrt{-x}$, with $a = -9$ and $b = -4$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "In the following, let $f(x) = F'(x)$. Write the integral $\\int_{a}^{b} f(x) \\, dx$ and evaluate it using the fundamental theorem of calculus. (a) $F(x) = \\sin(\\pi x)$, with $a = -\\frac{1}{2}$ and $b = \\frac{1}{2}$. (b) $F(x) = 1 + x^2$, with $a = -5$ and $b = 7$. (c) $F(x) = \\sqrt{-x}$, with $a = -9$ and $b = -4$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8oy000j8ono4jwht454",
+      "order": 13,
+      "title": "Evaluate Piecewise Function Integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "piecewise function",
+        "fundamental theorem of calculu"
+      ],
+      "question": "Let $f(y)$ be the piecewise function defined by $$f(y) = \\begin{cases} -1 & y < 0 \\\\ y^2 & 0 \\leq y \\leq 1 \\\\ 1 & y = 1 \\end{cases}$$. For each of the following, determine if we can evaluate the integral $\\int_{a}^{b} f(y) \\, dy$. If yes, evaluate it using the fundamental theorem of calculus. (a) $\\int_{-1}^{2} f(y) \\, dy$. (b) $\\int_{-10}^{-1} f(y) \\, dy$. (c) $\\int_{0}^{4} f(y) \\, dy$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(y)$ be the piecewise function defined by $$f(y) = \\begin{cases} -1 & y < 0 \\\\ y^2 & 0 \\leq y \\leq 1 \\\\ 1 & y = 1 \\end{cases}$$. For each of the following, determine if we can evaluate the integral $\\int_{a}^{b} f(y) \\, dy$. If yes, evaluate it using the fundamental theorem of calculus. (a) $\\int_{-1}^{2} f(y) \\, dy$. (b) $\\int_{-10}^{-1} f(y) \\, dy$. (c) $\\int_{0}^{4} f(y) \\, dy$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8q0000l8ono36zrfzdg",
+      "order": 14,
+      "title": "Evaluate Definite Integrals",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "fundamental theorem of calculu"
+      ],
+      "question": "Use the fundamental theorem of calculus and theorems about the definite integral to evaluate the following integrals. (a) $$\\int_{0}^{1} (3x^{2} + x - 5) \\, dx$$. (b) $$\\int_{-\\pi}^{\\pi} \\sin(x) \\, dx$$. (c) $$\\int_{-\\pi}^{\\pi} |\\sin(x)| \\, dx$$. (d) $$\\int_{-2025}^{2025} (\\sin(x^{71}) - 2x^{7}) \\, dx$$. (e) $$\\int_{0}^{10} e^{x} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Use the fundamental theorem of calculus and theorems about the definite integral to evaluate the following integrals. (a) $$\\int_{0}^{1} (3x^{2} + x - 5) \\, dx$$. (b) $$\\int_{-\\pi}^{\\pi} \\sin(x) \\, dx$$. (c) $$\\int_{-\\pi}^{\\pi} |\\sin(x)| \\, dx$$. (d) $$\\int_{-2025}^{2025} (\\sin(x^{71}) - 2x^{7}) \\, dx$$. (e) $$\\int_{0}^{10} e^{x} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8r6000n8onojale53o8",
+      "order": 15,
+      "title": "Inequalities of Integrals",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "inequalities",
+        "integrals"
+      ],
+      "question": "Let $f(x) = \\sin(x)$, $g(x) = 1 + \\frac{1}{2}x$, and $h(x) = xe^x$. If $A = \\int_{1}^{100} h(x) \\, dx$, $B = \\int_{1}^{100} g(x) \\, dx$, and $C = \\int_{1}^{100} f(x) \\, dx$, then determine which of the following is true without evaluating any integrals. (a) $C \\leq A \\leq B$. (b) $B \\leq A \\leq C$. (c) $C \\leq B \\leq A$. (d) $A \\leq C \\leq B$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(x) = \\sin(x)$, $g(x) = 1 + \\frac{1}{2}x$, and $h(x) = xe^x$. If $A = \\int_{1}^{100} h(x) \\, dx$, $B = \\int_{1}^{100} g(x) \\, dx$, and $C = \\int_{1}^{100} f(x) \\, dx$, then determine which of the following is true without evaluating any integrals. (a) $C \\leq A \\leq B$. (b) $B \\leq A \\leq C$. (c) $C \\leq B \\leq A$. (d) $A \\leq C \\leq B$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8s8000p8onoa8o2zpqo",
+      "order": 16,
+      "title": "Find Antiderivatives",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "antiderivative"
+      ],
+      "question": "For each of the following functions $f(x)$, find the unique antiderivative $F(x)$ satisfying the additional assumptions. (a) $f(x) = 3x^2 + 1$ with $F(0) = 1$. (b) $f(x) = \\sin(x) + 4x$ with $F\\left(\\frac{\\pi}{2}\\right) = 6$. (c) $f(x) = x^1$ on the interval $[1, \\infty)$ with $F(e) = 1$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For each of the following functions $f(x)$, find the unique antiderivative $F(x)$ satisfying the additional assumptions. (a) $f(x) = 3x^2 + 1$ with $F(0) = 1$. (b) $f(x) = \\sin(x) + 4x$ with $F\\left(\\frac{\\pi}{2}\\right) = 6$. (c) $f(x) = x^1$ on the interval $[1, \\infty)$ with $F(e) = 1$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe8t9000r8onoq5fqjj79",
+      "order": 17,
+      "title": "True or False Statements",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p2",
+        "定积分",
+        "true or false",
+        "antiderivative"
+      ],
+      "question": "Determine whether the following statements are true or false. If they are true, explain why. If they are false, explain why by giving a counterexample. (a) If $F(x)$ and $G(x)$ are both antiderivatives of $f(x)$ then so too is $H(x) = F(x) + G(x)$. (b) If $F(x)$ is an antiderivative of $f(x)$ and $G(x)$ is an antiderivative of $g(x)$ then $F(x) + G(x)$ is an antiderivative of $f(x) + g(x)$. (c) If $f(x)$ is a positive function ($f(x) \\geq 0$ for all $x$), then any antiderivative $F(x)$ is also a positive function. (d) If $f(x)$ is a continuous function with $\\int_{0}^{k} f(x) \\, dx = 0$ for every positive integer $k = 0, 1, 2, \\ldots$, and $F(x)$ is an antiderivative of $f(x)$, then $F(x)$ must be a constant function.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Determine whether the following statements are true or false. If they are true, explain why. If they are false, explain why by giving a counterexample. (a) If $F(x)$ and $G(x)$ are both antiderivatives of $f(x)$ then so too is $H(x) = F(x) + G(x)$. (b) If $F(x)$ is an antiderivative of $f(x)$ and $G(x)$ is an antiderivative of $g(x)$ then $F(x) + G(x)$ is an antiderivative of $f(x) + g(x)$. (c) If $f(x)$ is a positive function ($f(x) \\geq 0$ for all $x$), then any antiderivative $F(x)$ is also a positive function. (d) If $f(x)$ is a continuous function with $\\int_{0}^{k} f(x) \\, dx = 0$ for every positive integer $k = 0, 1, 2, \\ldots$, and $F(x)$ is an antiderivative of $f(x)$, then $F(x)$ must be a constant function."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe91n000t8ono2qy1drff",
+      "order": 18,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{2x+1 - 5x - 1}{10x} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{2x+1 - 5x - 1}{10x} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe92l000v8onordk0d1t1",
+      "order": 19,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{3e^x}{x^3 - 6x^2 + x} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{3e^x}{x^3 - 6x^2 + x} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe93j000x8ono1con3u58",
+      "order": 20,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{1 - x^{12}}{\\sqrt{x}} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{1 - x^{12}}{\\sqrt{x}} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe94h000z8onojvhb3s4u",
+      "order": 21,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{x^3 - 3x^2 + 3x - 1}{x - 1} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{x^3 - 3x^2 + 3x - 1}{x - 1} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe95g00118ono8vu3f23l",
+      "order": 22,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{1 - x^2}{\\sqrt{1 - x^2}} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{1 - x^2}{\\sqrt{1 - x^2}} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe96e00138onons5b3zas",
+      "order": 23,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int (\\sin(5x) - \\sin(5)) \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int (\\sin(5x) - \\sin(5)) \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe97e00158onoao5lph7e",
+      "order": 24,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{e^{3x} + 1}{e^x + 1} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{e^{3x} + 1}{e^x + 1} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe98d00178ono5drt5w4w",
+      "order": 25,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int (1 + \\tan^2(x))(1 - \\cos^2(x)) \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int (1 + \\tan^2(x))(1 - \\cos^2(x)) \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe99d00198onofciag924",
+      "order": 26,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{x^3 + 6x^2 + 11x + 6}{x - 1} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{x^3 + 6x^2 + 11x + 6}{x - 1} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9ac001b8onop4g5xz3z",
+      "order": 27,
+      "title": "Find the total area between functions",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "面积与体积",
+        "area"
+      ],
+      "question": "Determine the total area of the region bound between $f(x) = (2x)^2$ and $g(x) = \\\\sqrt{2x}$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine the total area of the region bound between $f(x) = (2x)^2$ and $g(x) = \\\\sqrt{2x}$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9bb001d8onokjr9x03g",
+      "order": 28,
+      "title": "Find the total area between functions",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "面积与体积",
+        "area"
+      ],
+      "question": "Determine the total area of the region bound between $f(x) = |2x|$ and $g(x) = x + 2$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine the total area of the region bound between $f(x) = |2x|$ and $g(x) = x + 2$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9cb001f8ono2imlj6c2",
+      "order": 29,
+      "title": "Find the total area between functions",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "面积与体积",
+        "area"
+      ],
+      "question": "Determine the total area of the region bound between $f(x) = \\sin(2x)$ and $g(x) = \\cos(2x)$ on $[0, \\frac{\\pi}{2}]$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine the total area of the region bound between $f(x) = \\sin(2x)$ and $g(x) = \\cos(2x)$ on $[0, \\frac{\\pi}{2}]$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9dc001h8ono3p8fugrq",
+      "order": 30,
+      "title": "Tangent line approximation",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "tangent line",
+        "approximation"
+      ],
+      "question": "Determine the tangent line approximation of the integral function $f(x) = \\int_0^x \\frac{\\sin(t)}{t} \\, dt$ about the point $x = 0$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine the tangent line approximation of the integral function $f(x) = \\int_0^x \\frac{\\sin(t)}{t} \\, dt$ about the point $x = 0$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9ef001j8onoo6z2onsh",
+      "order": 31,
+      "title": "Find $c$ such that $F(c) = 0$",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "functions"
+      ],
+      "question": "Let $F(x) = \\int_{1-x}^{1+x^3} f(t) \\, dt$. If possible, find a number $c \\in \\mathbb{R}$ such that $F(c) = 0$. If it is not possible, explain why.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Let $F(x) = \\int_{1-x}^{1+x^3} f(t) \\, dt$. If possible, find a number $c \\in \\mathbb{R}$ such that $F(c) = 0$. If it is not possible, explain why."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9fe001l8onoznwp5eql",
+      "order": 32,
+      "title": "Show average value of $f(t)$",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "average value"
+      ],
+      "question": "Show that the average value of $f(t)$ on $[0, 2]$ is $\\frac{1}{2} F(1)$.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Show that the average value of $f(t)$ on $[0, 2]$ is $\\frac{1}{2} F(1)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9gd001n8onodvoabr0s",
+      "order": 33,
+      "title": "Find $F'(x)$",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "derivatives"
+      ],
+      "question": "Let $f(t) = \\ln(t^2 + 1)$. Find $F'(x)$ where $F(x) = \\int_{1-x}^{1+x^3} f(t) \\, dt$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(t) = \\ln(t^2 + 1)$. Find $F'(x)$ where $F(x) = \\int_{1-x}^{1+x^3} f(t) \\, dt$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9hc001p8onowilow4pc",
+      "order": 34,
+      "title": "Find critical points",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "critical points"
+      ],
+      "question": "For the function $F(x) = \\int_{-1}^{x} t^{10} e^t \\, dt$, find all of its critical points.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $F(x) = \\int_{-1}^{x} t^{10} e^t \\, dt$, find all of its critical points."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9ic001r8ono74up2y5n",
+      "order": 35,
+      "title": "Find critical points",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "critical points"
+      ],
+      "question": "For the function $F(x) = \\int_{2}^{x} e^{-t^2} - 1 \\, dt$, find all of its critical points.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $F(x) = \\int_{2}^{x} e^{-t^2} - 1 \\, dt$, find all of its critical points."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9j9001t8ono8x1ktvyg",
+      "order": 36,
+      "title": "Find critical points",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "critical points"
+      ],
+      "question": "For the function $F(x) = \\int_{x}^{1} (t - 1) \\, dt$, find all of its critical points.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $F(x) = \\int_{x}^{1} (t - 1) \\, dt$, find all of its critical points."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9k7001v8onolfd86cy0",
+      "order": 37,
+      "title": "Find critical points",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "critical points"
+      ],
+      "question": "For the function $F(x) = \\int_{0}^{x} \\sin(t) \\, dt$, find all of its critical points.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $F(x) = \\int_{0}^{x} \\sin(t) \\, dt$, find all of its critical points."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9l6001x8onozu2yinbg",
+      "order": 38,
+      "title": "Average velocity of the ball",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "微分方程",
+        "physics",
+        "velocity"
+      ],
+      "question": "Find the average velocity of the ball in the first $5\\,\\mathrm{seconds}$ of its travel, given that the initial velocity is $25 \\, \\mathrm{m/s}$ and the acceleration due to gravity is $-10 \\, \\mathrm{m/s}^2$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find the average velocity of the ball in the first $5\\,\\mathrm{seconds}$ of its travel, given that the initial velocity is $25 \\, \\mathrm{m/s}$ and the acceleration due to gravity is $-10 \\, \\mathrm{m/s}^2$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9m4001z8onol11swla9",
+      "order": 39,
+      "title": "Total distance travelled by the ball",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "calculation",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "physics",
+        "distance"
+      ],
+      "question": "Find the total distance travelled by the ball in the first $5\\,\\mathrm{seconds}$ of its travel.",
+      "publicContent": {
+        "type": "calculation",
+        "stem": "Find the total distance travelled by the ball in the first $5\\,\\mathrm{seconds}$ of its travel."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9n200218ono9ozy51ca",
+      "order": 40,
+      "title": "Find $f(x)$",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "functions"
+      ],
+      "question": "Suppose that $f'(x^2) = x$ for $x > 0$. Find $f(x)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose that $f'(x^2) = x$ for $x > 0$. Find $f(x)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9o200238onoa0c9xom3",
+      "order": 41,
+      "title": "Find the antiderivative",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "antiderivative"
+      ],
+      "question": "For the function $f(x) = x + 1$, find the antiderivative $F(x)$ that passes through the point $(4, 1)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $f(x) = x + 1$, find the antiderivative $F(x)$ that passes through the point $(4, 1)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9p000258onolbuvupp0",
+      "order": 42,
+      "title": "Find the antiderivative",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "antiderivative"
+      ],
+      "question": "For the function $f(x) = (2x + 3x^2)^2$, find the antiderivative $F(x)$ that passes through the point $(0, 0)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $f(x) = (2x + 3x^2)^2$, find the antiderivative $F(x)$ that passes through the point $(0, 0)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9pz00278onomvmpbw9y",
+      "order": 43,
+      "title": "Find the antiderivative",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p3",
+        "定积分",
+        "antiderivative"
+      ],
+      "question": "For the function $f(x) = x^{x-1} - x$, find the antiderivative $F(x)$ that passes through the point $(1, 1)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the function $f(x) = x^{x-1} - x$, find the antiderivative $F(x)$ that passes through the point $(1, 1)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9y100298onounmczi7x",
+      "order": 44,
+      "title": "Integration by Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "For the integral $$\\int t(t^2 - 8)^{10} \\, dt$$, identify $f(t)$, $u(t)$, and $u'(t)$, then evaluate the integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the integral $$\\int t(t^2 - 8)^{10} \\, dt$$, identify $f(t)$, $u(t)$, and $u'(t)$, then evaluate the integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoe9z1002b8ono1pdgbhqe",
+      "order": 45,
+      "title": "Integration by Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "For the integral $$\\int x e^{2x} \\, dx$$, identify $f(x)$, $u(x)$, and $u'(x)$, then evaluate the integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the integral $$\\int x e^{2x} \\, dx$$, identify $f(x)$, $u(x)$, and $u'(x)$, then evaluate the integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea02002d8onoqo3rfwqy",
+      "order": 46,
+      "title": "Integration by Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "For the integral $$\\int \\frac{y}{y^2 + 4} \\, dy$$, identify $f(y)$, $u(y)$, and $u'(y)$, then evaluate the integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the integral $$\\int \\frac{y}{y^2 + 4} \\, dy$$, identify $f(y)$, $u(y)$, and $u'(y)$, then evaluate the integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea15002f8onol4temqgz",
+      "order": 47,
+      "title": "Evaluate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the integral $\\int (x + 5)^2 \\, dx$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int (x + 5)^2 \\, dx$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea25002h8onodx74i0hv",
+      "order": 48,
+      "title": "Evaluate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the integral $\\int \\frac{e^x}{2 + e^x} \\, dx$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int \\frac{e^x}{2 + e^x} \\, dx$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea34002j8onoiw3u2qzt",
+      "order": 49,
+      "title": "Evaluate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{1}{1 + \\sqrt{x}} \\, dx$$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{1}{1 + \\sqrt{x}} \\, dx$$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea43002l8onozla6x3sd",
+      "order": 50,
+      "title": "Evaluate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the integral $\\int (x + 8)(3 - 4x)^{1/3} \\, dx$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int (x + 8)(3 - 4x)^{1/3} \\, dx$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea53002n8onot4e9tdry",
+      "order": 51,
+      "title": "Evaluate Definite Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the definite integral $$\\int_0^{\\frac{3}{2}} \\cos(\\pi \\theta) \\, d\\theta$$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the definite integral $$\\int_0^{\\frac{3}{2}} \\cos(\\pi \\theta) \\, d\\theta$$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea64002p8ononx7r6g5o",
+      "order": 52,
+      "title": "Evaluate Definite Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the definite integral $$\\int_1^4 \\frac{1}{t + 4} \\, dt$$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the definite integral $$\\int_1^4 \\frac{1}{t + 4} \\, dt$$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea75002r8onomc1j0mzm",
+      "order": 53,
+      "title": "Evaluate Definite Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Evaluate the definite integral $$\\int_{-1}^1 \\frac{e^x}{2 + e^x} \\, dx$$ using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the definite integral $$\\int_{-1}^1 \\frac{e^x}{2 + e^x} \\, dx$$ using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea86002t8onoasg2f080",
+      "order": 54,
+      "title": "Find Function for Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Find a function $g(x)$ so that the integral $$\\int g(x)e^x \\, dx$$ may be evaluated using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find a function $g(x)$ so that the integral $$\\int g(x)e^x \\, dx$$ may be evaluated using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoea9a002v8ono1lcq9y73",
+      "order": 55,
+      "title": "Find Function for Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Find a function $g(\\theta)$ so that the integral $$\\int g(\\theta) \\cos^2(\\theta) \\, d\\theta$$ may be evaluated using substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find a function $g(\\theta)$ so that the integral $$\\int g(\\theta) \\cos^2(\\theta) \\, d\\theta$$ may be evaluated using substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaac002x8onoj8175rqf",
+      "order": 56,
+      "title": "Calculate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Calculate the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$ by making a substitution.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Calculate the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$ by making a substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeabe002z8onom3onfaop",
+      "order": 57,
+      "title": "Calculate Integral Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Calculate the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$ using the substitution $u = \\cos(\\theta)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Calculate the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$ using the substitution $u = \\cos(\\theta)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeacf00318onowmlnvv4g",
+      "order": 58,
+      "title": "Calculate Integral Using Trigonometric Identity",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "trigonometric identity"
+      ],
+      "question": "Use the trigonometric identity $\\sin(2\\theta) = 2 \\sin(\\theta) \\cos(\\theta)$ to compute the integral $\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Use the trigonometric identity $\\sin(2\\theta) = 2 \\sin(\\theta) \\cos(\\theta)$ to compute the integral $\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeadh00338onobp99m3j9",
+      "order": 59,
+      "title": "Compare Integral Results",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "comparison"
+      ],
+      "question": "Compare your answers from parts (a), (b), and (c) of the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$. Do they agree?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compare your answers from parts (a), (b), and (c) of the integral $$\\int \\sin(\\theta) \\cos(\\theta) \\, d\\theta$$. Do they agree?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaei00358onosng6encf",
+      "order": 60,
+      "title": "Show Integrals are Equal Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "proof",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "proof"
+      ],
+      "question": "Show that the integrals $$\\int_0^{\\frac{\\pi}{3}} 3 \\sin^2(3x) \\, dx$$ and $$\\int_0^{\\pi} \\sin^2(y) \\, dy$$ are equal using a substitution.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Show that the integrals $$\\int_0^{\\frac{\\pi}{3}} 3 \\sin^2(3x) \\, dx$$ and $$\\int_0^{\\pi} \\sin^2(y) \\, dy$$ are equal using a substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeafk00378ono2je311fe",
+      "order": 61,
+      "title": "Show Integrals are Equal Using Substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "proof",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration",
+        "proof"
+      ],
+      "question": "Show that the integrals $$\\int_1^{\\infty} (\\ln x)^3 \\, dx$$ and $$\\int_0^{1} y^3 e^y \\, dy$$ are equal using a substitution.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Show that the integrals $$\\int_1^{\\infty} (\\ln x)^3 \\, dx$$ and $$\\int_0^{1} y^3 e^y \\, dy$$ are equal using a substitution."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeagl00398ono8pby5w5x",
+      "order": 62,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $$\\int \\ln(x) \\, dx$$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\ln(x) \\, dx$$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeahm003b8ono9btooys7",
+      "order": 63,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $\\int x^3 \\ln(x) \\, dx$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int x^3 \\ln(x) \\, dx$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeail003d8onoyarawg57",
+      "order": 64,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $\\int \\sin^2(\\theta) \\, d\\theta$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int \\sin^2(\\theta) \\, d\\theta$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeajm003f8ono6fsgslyp",
+      "order": 65,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $$\\int z e^z \\, dz$$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int z e^z \\, dz$$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeakp003h8onoo3kg84nt",
+      "order": 66,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $$\\int x e^x \\, dx$$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int x e^x \\, dx$$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoealr003j8onoxjd6mzwr",
+      "order": 67,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $\\int x^2 e^x \\, dx$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int x^2 e^x \\, dx$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeamv003l8onodyiajf1e",
+      "order": 68,
+      "title": "Evaluate Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the integral $\\int x^3 e^x \\, dx$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $\\int x^3 e^x \\, dx$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeanv003n8onodi1yge6g",
+      "order": 69,
+      "title": "Write Formula for Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Write a formula for $\\int x^n e^x \\, dx$ where $n = 0, 1, 2, \\ldots$. Your formula may use summation notation and should not have any integrals in it.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Write a formula for $\\int x^n e^x \\, dx$ where $n = 0, 1, 2, \\ldots$. Your formula may use summation notation and should not have any integrals in it."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaox003p8ono61muix3e",
+      "order": 70,
+      "title": "Evaluate Definite Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the definite integral $\\int_1^5 \\ln(t) \\, dt$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the definite integral $\\int_1^5 \\ln(t) \\, dt$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaq0003r8onogh7eafe1",
+      "order": 71,
+      "title": "Evaluate Definite Integral Using Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Evaluate the definite integral $\\int_1^3 x \\ln(x) \\, dx$ using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the definite integral $\\int_1^3 x \\ln(x) \\, dx$ using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoear2003t8onojt5mfjv2",
+      "order": 72,
+      "title": "Find Function for Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Find a function $g(x)$ so that the integral $$\\int g(x)e^x \\, dx$$ may be evaluated using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find a function $g(x)$ so that the integral $$\\int g(x)e^x \\, dx$$ may be evaluated using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeas6003v8onoj6sf24u0",
+      "order": 73,
+      "title": "Find Function for Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Find a function $g(x)$ so that the integral $\\int x^2 g(x) \\, dx$ may be evaluated using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find a function $g(x)$ so that the integral $\\int x^2 g(x) \\, dx$ may be evaluated using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeat8003x8onoiwzmwaee",
+      "order": 74,
+      "title": "Find Function for Integration by Parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Find a function $g(x)$ so that the integral $$\\int x^3 \\sin(g(x)) \\, dx$$ may be evaluated using integration by parts.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find a function $g(x)$ so that the integral $$\\int x^3 \\sin(g(x)) \\, dx$$ may be evaluated using integration by parts."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaub003z8ono4fsmmatb",
+      "order": 75,
+      "title": "Write Expression in Integral-Free Form",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Use integration by parts to write the expression $$\\int f''(x) \\ln(x) \\, dx + \\int \\frac{f(x)}{x^2} \\, dx$$ in a form which has no integrals.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Use integration by parts to write the expression $$\\int f''(x) \\ln(x) \\, dx + \\int \\frac{f(x)}{x^2} \\, dx$$ in a form which has no integrals."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeavc00418ono7eqcri5d",
+      "order": 76,
+      "title": "Evaluate Integral",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{1}{4x - 1} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{1}{4x - 1} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeawp00438ono3lxaxpey",
+      "order": 77,
+      "title": "Evaluate Integral",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration"
+      ],
+      "question": "Evaluate the integral $$\\int x^3 \\cos(x^2) \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int x^3 \\cos(x^2) \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeaxp00458ono424p1s23",
+      "order": 78,
+      "title": "Evaluate Integral",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration"
+      ],
+      "question": "Evaluate the integral $$\\int_0^1 \\arctan(z) \\, dz$$ (recall $dz \\, \\arctan(z) = \\frac{1}{1 + z^2}$).",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int_0^1 \\arctan(z) \\, dz$$ (recall $dz \\, \\arctan(z) = \\frac{1}{1 + z^2}$)."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeayp00478onovya00ul5",
+      "order": 79,
+      "title": "Evaluate Integral",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p4",
+        "换元法",
+        "integration"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{\\ln((\\ln(x))^3)}{x} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{\\ln((\\ln(x))^3)}{x} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeb6w00498onoz477n942",
+      "order": 80,
+      "title": "Convergence of Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "convergence",
+        "integrals"
+      ],
+      "question": "Determine, with justification, if the following integrals converge or diverge: (a) $$ \\int_0^{\\infty} \\sin x \\, dx $$ (b) $$ \\int_1^{\\infty} \\frac{\\sqrt{dx}}{x^3 + 1} \\, dx $$ (c) $$ \\int_0^{\\infty} (x^2 - 3x + 2) \\, dx $$ (d) $$ \\int_1^{\\infty} \\frac{\\sqrt{x + 5}}{x^5 - x^3} \\, dx $$ (e) $$ \\int_1^{\\infty} \\frac{1 + e^{-x}}{\\sqrt{x}} \\, dx $$ (f) $$ \\int_1^{\\infty} \\frac{e^{-x}}{\\sqrt{x}} \\, dx $$ (g) $$ \\int_{-\\infty}^{\\infty} \\frac{1}{(x^2 + x + 1)^2} \\, dx $$ (h) $$ \\int_0^{\\infty} \\frac{x^2 + 1}{x^4 + 1} \\, dx $$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine, with justification, if the following integrals converge or diverge: (a) $$ \\int_0^{\\infty} \\sin x \\, dx $$ (b) $$ \\int_1^{\\infty} \\frac{\\sqrt{dx}}{x^3 + 1} \\, dx $$ (c) $$ \\int_0^{\\infty} (x^2 - 3x + 2) \\, dx $$ (d) $$ \\int_1^{\\infty} \\frac{\\sqrt{x + 5}}{x^5 - x^3} \\, dx $$ (e) $$ \\int_1^{\\infty} \\frac{1 + e^{-x}}{\\sqrt{x}} \\, dx $$ (f) $$ \\int_1^{\\infty} \\frac{e^{-x}}{\\sqrt{x}} \\, dx $$ (g) $$ \\int_{-\\infty}^{\\infty} \\frac{1}{(x^2 + x + 1)^2} \\, dx $$ (h) $$ \\int_0^{\\infty} \\frac{x^2 + 1}{x^4 + 1} \\, dx $$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeb7x004b8onogu4da36r",
+      "order": 81,
+      "title": "Values of $p$ for Convergence",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "convergence",
+        "integrals"
+      ],
+      "question": "For what values of $p$ does the following integral converge? $$\\int_0^{\\infty} \\frac{\\sqrt{x^p}}{x^2 - 2x + 1} \\, dx$$ (a) and $$\\int_0^{1} \\frac{\\sqrt{x}}{1 - x^4} \\, dx$$ (b)",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For what values of $p$ does the following integral converge? $$\\int_0^{\\infty} \\frac{\\sqrt{x^p}}{x^2 - 2x + 1} \\, dx$$ (a) and $$\\int_0^{1} \\frac{\\sqrt{x}}{1 - x^4} \\, dx$$ (b)"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeb8y004d8onodgpd74fg",
+      "order": 82,
+      "title": "Evaluate Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "convergence",
+        "evaluation"
+      ],
+      "question": "Determine if the following integrals converge or diverge. If they diverge, explain why. If they converge, evaluate them: (a) $$ \\int_4^{\\infty} e^{-\\sqrt{x}} \\, dx $$ (b) $$ \\int_{-2}^{2} \\frac{6x^2 + 8}{-2x^3 + 4x} \\, dx $$ (c) $$ \\int_0^{\\infty} \\frac{1}{x^{1/2} + x^{3/2}} \\, dx $$ (d) $$ \\int_2^{\\infty} \\ln x \\, dx $$",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Determine if the following integrals converge or diverge. If they diverge, explain why. If they converge, evaluate them: (a) $$ \\int_4^{\\infty} e^{-\\sqrt{x}} \\, dx $$ (b) $$ \\int_{-2}^{2} \\frac{6x^2 + 8}{-2x^3 + 4x} \\, dx $$ (c) $$ \\int_0^{\\infty} \\frac{1}{x^{1/2} + x^{3/2}} \\, dx $$ (d) $$ \\int_2^{\\infty} \\ln x \\, dx $$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeba0004f8ono17x3kn1v",
+      "order": 83,
+      "title": "Evaluate Integral Using Given Fact",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "evaluation",
+        "integrals"
+      ],
+      "question": "You are given the fact that $$ \\int_0^{\\infty} e^{-x} \\, dx = 2 $$ . Use it to evaluate $$ \\int_2^{\\infty} (x - 2)^3 e^{-\\frac{x}{5}} \\, dx $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "You are given the fact that $$ \\int_0^{\\infty} e^{-x} \\, dx = 2 $$ . Use it to evaluate $$ \\int_2^{\\infty} (x - 2)^3 e^{-\\frac{x}{5}} \\, dx $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebb2004h8onog3ilsoix",
+      "order": 84,
+      "title": "Determine PDF Values",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "probability",
+        "PDF",
+        "CDF"
+      ],
+      "question": "For each function below, determine the value of $A$ so that it is the PDF of a random variable: (a) $f_X(x) = Ae^{-\\lambda x}$ (b) $f_X(x) = \\sigma x^2 e^{Ax}$ (c) $f_X(x) = A \\frac{(x/\\alpha)^{\\beta - 1}}{(1 + (x/\\alpha)^{\\beta})^2}$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For each function below, determine the value of $A$ so that it is the PDF of a random variable: (a) $f_X(x) = Ae^{-\\lambda x}$ (b) $f_X(x) = \\sigma x^2 e^{Ax}$ (c) $f_X(x) = A \\frac{(x/\\alpha)^{\\beta - 1}}{(1 + (x/\\alpha)^{\\beta})^2}$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebc3004j8onofw0evxce",
+      "order": 85,
+      "title": "Calculate Expected Value",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "expected value",
+        "PDF"
+      ],
+      "question": "For each PDF of a random variable below, calculate the expected value of $X$: (a) $f_X(x) = \\alpha \\lambda (1 + \\lambda x)^{-\\alpha - 1}$ (b) $f_X(x) = \\frac{\\sigma}{\\sqrt{2\\pi}} e^{-\\frac{x^2}{2\\sigma^2}}$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For each PDF of a random variable below, calculate the expected value of $X$: (a) $f_X(x) = \\alpha \\lambda (1 + \\lambda x)^{-\\alpha - 1}$ (b) $f_X(x) = \\frac{\\sigma}{\\sqrt{2\\pi}} e^{-\\frac{x^2}{2\\sigma^2}}$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebd3004l8ononkv597sq",
+      "order": 86,
+      "title": "Find Divergence Values",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "divergence",
+        "integrals"
+      ],
+      "question": "For each function below, find a value of $a$ so that the resulting integral diverges: (a) $$ \\int_{-1}^{1} \\frac{ax^2 + x}{2x^2 - 4x + 2} \\, dx $$ (b) $$ \\int_0^{10} \\frac{1}{\\sqrt{x(x^2 - 2ax + a^2)}} \\, dx $$ (c) $$ \\int_1^{\\infty} e^{-(a^2 - a)x^2} \\sin(ax) \\, dx $$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For each function below, find a value of $a$ so that the resulting integral diverges: (a) $$ \\int_{-1}^{1} \\frac{ax^2 + x}{2x^2 - 4x + 2} \\, dx $$ (b) $$ \\int_0^{10} \\frac{1}{\\sqrt{x(x^2 - 2ax + a^2)}} \\, dx $$ (c) $$ \\int_1^{\\infty} e^{-(a^2 - a)x^2} \\sin(ax) \\, dx $$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebe7004n8onotvf779pt",
+      "order": 87,
+      "title": "Convergence of Sine Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "反常积分",
+        "convergence",
+        "sine"
+      ],
+      "question": "Determine the convergence of the following integrals: (a) $$ \\int_0^{\\infty} \\frac{\\sin x}{x} \\, dx $$ (b) $$ \\int_0^{\\infty} \\frac{\\sin x}{x^2} \\, dx $$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine the convergence of the following integrals: (a) $$ \\int_0^{\\infty} \\frac{\\sin x}{x} \\, dx $$ (b) $$ \\int_0^{\\infty} \\frac{\\sin x}{x^2} \\, dx $$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebf9004p8onophorxvoc",
+      "order": 88,
+      "title": "Average Value of a Function",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p5",
+        "定积分",
+        "average value",
+        "function"
+      ],
+      "question": "Compute the average value of $\\arctan x$ on $[0, \\infty)$: $\\lim_{x \\to \\infty} \\frac{1}{x} \\int_0^x \\arctan t \\, dt$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute the average value of $\\arctan x$ on $[0, \\infty)$: $\\lim_{x \\to \\infty} \\frac{1}{x} \\int_0^x \\arctan t \\, dt$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebns004r8onojj54ovv6",
+      "order": 89,
+      "title": "Area of Shapes Using Integrals",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "area",
+        "integrals"
+      ],
+      "question": "Using horizontal slices, set up an integral calculating the area of the following shapes: (i) An equilateral triangle of side length $6$. (ii) A semicircle of radius $5$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Using horizontal slices, set up an integral calculating the area of the following shapes: (i) An equilateral triangle of side length $6$. (ii) A semicircle of radius $5$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebos004t8onox77a4mws",
+      "order": 90,
+      "title": "Volume of a Triangular Pyramid",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "volume",
+        "pyramid"
+      ],
+      "question": "In this problem we will calculate the volume of a triangular pyramid of height $6$, assuming the base is an equilateral triangle of side length $6$. (a) First, determine the area of a horizontal slice of height $\\Delta h$. (b) Set up an integral which calculates the volume of the pyramid. (c) Evaluate the integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "In this problem we will calculate the volume of a triangular pyramid of height $6$, assuming the base is an equilateral triangle of side length $6$. (a) First, determine the area of a horizontal slice of height $\\Delta h$. (b) Set up an integral which calculates the volume of the pyramid. (c) Evaluate the integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebpt004v8onotpmz85nc",
+      "order": 91,
+      "title": "Area Bounded by Functions",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "area",
+        "functions"
+      ],
+      "question": "Consider the region bounded by the functions $f(x) = \\sqrt{x}$ and $g(x) = x$. Calculate its area using (a) Vertical slices (i.e. how we have calculated such areas in the past) (b) Horizontal slices.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Consider the region bounded by the functions $f(x) = \\sqrt{x}$ and $g(x) = x$. Calculate its area using (a) Vertical slices (i.e. how we have calculated such areas in the past) (b) Horizontal slices."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebqt004x8onod2gj0h5b",
+      "order": 92,
+      "title": "Volume of a Cone",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "volume",
+        "cone"
+      ],
+      "question": "Consider a cone of height $h$ with base radius $r$. (a) Calculate the area of a thin slice of width $\\Delta h$. (b) Set up an integral calculating the volume of the cone. (c) Evaluate the integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Consider a cone of height $h$ with base radius $r$. (a) Calculate the area of a thin slice of width $\\Delta h$. (b) Set up an integral calculating the volume of the cone. (c) Evaluate the integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebrv004z8onogm74m5g5",
+      "order": 93,
+      "title": "Volume of a Sphere",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "volume",
+        "sphere"
+      ],
+      "question": "Find the volume of a solid sphere of radius $r$ using slices.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find the volume of a solid sphere of radius $r$ using slices."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoebsw00518onotyowd12q",
+      "order": 94,
+      "title": "Volume of a Shape with Square Cross-Section",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "p6",
+        "面积与体积",
+        "volume",
+        "integrals"
+      ],
+      "question": "Consider a shape of height $2$ which at height $h$ has horizontal slice a square of side length $1 + x^2$. Set up an integral calculating the volume of this shape and evaluate it.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Consider a shape of height $2$ which at height $h$ has horizontal slice a square of side length $1 + x^2$. Set up an integral calculating the volume of this shape and evaluate it."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoec1500538ono4ikfcl9i",
+      "order": 95,
+      "title": "Total Distance Traveled by Ian Laver",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice1",
+        "定积分",
+        "motion",
+        "integration"
+      ],
+      "question": "Ian Laver is chasing his chickens and they act crazy! His velocity at any time $t$ (in seconds after the chicken escaped) is modelled by the function $v(t) = \\\\sin(t^2)$. Construct a function that will give you the total distance traveled in $x$ seconds since the chickens escaped. Find the derivative of the function you find above.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Ian Laver is chasing his chickens and they act crazy! His velocity at any time $t$ (in seconds after the chicken escaped) is modelled by the function $v(t) = \\\\sin(t^2)$. Construct a function that will give you the total distance traveled in $x$ seconds since the chickens escaped. Find the derivative of the function you find above."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoec2800558onol9c9hzz3",
+      "order": 96,
+      "title": "Value of Second Derivative",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice1",
+        "定积分",
+        "differentiation"
+      ],
+      "question": "Let $F(x) = e^x$. Find the value of $F''(7)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $F(x) = e^x$. Find the value of $F''(7)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoec3a00578onoebvntkan",
+      "order": 97,
+      "title": "Total Bee Population Increase",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice1",
+        "微分方程",
+        "population growth",
+        "integration"
+      ],
+      "question": "A honeybee population starts with 100 bees and increases at a rate of $n'(t)$ bees per week. What does $100 + \\frac{1}{15} \\bigg( \\int n'(t) \\, dt \\bigg)$ represent?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "A honeybee population starts with 100 bees and increases at a rate of $n'(t)$ bees per week. What does $100 + \\frac{1}{15} \\bigg( \\int n'(t) \\, dt \\bigg)$ represent?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "The rate at which the bee population increases after $15\\,\\mathrm{weeks}$ have passed."
+          },
+          {
+            "id": "B",
+            "label": "The total bee population after $15\\,\\mathrm{weeks}$."
+          },
+          {
+            "id": "C",
+            "label": "The average rate at which the bee population increases over the first $15\\,\\mathrm{weeks}$."
+          },
+          {
+            "id": "D",
+            "label": "The total increase in the bee population after $15\\,\\mathrm{weeks}$."
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoec4c00598onozr7noesk",
+      "order": 98,
+      "title": "Integral Sign Analysis",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice1",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $\\int_2^4 (\\sin(x^2) - 3) \\, dx$. Which of the following is true?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Evaluate the integral $\\int_2^4 (\\sin(x^2) - 3) \\, dx$. Which of the following is true?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "negative."
+          },
+          {
+            "id": "B",
+            "label": "zero."
+          },
+          {
+            "id": "C",
+            "label": "positive."
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoec5e005b8ono98bc1t5x",
+      "order": 99,
+      "title": "Total Fuel Spent",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice1",
+        "定积分",
+        "fuel consumption",
+        "integration"
+      ],
+      "question": "Let $f(x)$ be the amount of fuel in litres spent per minute to travel a road with slope $x$. Let $x(t)$ be the slope of the road $t$ minutes into the trip. Which of the following gives the total amount of fuel spent travelling in the first $5\\,\\mathrm{minutes}$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(x)$ be the amount of fuel in litres spent per minute to travel a road with slope $x$. Let $x(t)$ be the slope of the road $t$ minutes into the trip. Which of the following gives the total amount of fuel spent travelling in the first $5\\,\\mathrm{minutes}$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecdp005d8ono8oslapbj",
+      "order": 100,
+      "title": "Evaluate the integral",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice2",
+        "定积分",
+        "integrals"
+      ],
+      "question": "Evaluate the integral $$\\int \\frac{1}{x^2 + 2} \\sin(3x) \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate the integral $$\\int \\frac{1}{x^2 + 2} \\sin(3x) \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecep005f8ono3mhbn0x2",
+      "order": 101,
+      "title": "Average CO2 emissions",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice2",
+        "定积分",
+        "average",
+        "emissions"
+      ],
+      "question": "Suppose the annual CO2 emissions of a certain city are projected to be $E(t) = 1600\\,\\mathrm{metric\\,tons}$, where $t$ is the number of years after 2010. What is the average amount of CO2 emissions in the years 2016 to 2020?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose the annual CO2 emissions of a certain city are projected to be $E(t) = 1600\\,\\mathrm{metric\\,tons}$, where $t$ is the number of years after 2010. What is the average amount of CO2 emissions in the years 2016 to 2020?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecfr005h8onolmsx9z59",
+      "order": 102,
+      "title": "Net change in CO2 emissions",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice2",
+        "定积分",
+        "net change",
+        "emissions"
+      ],
+      "question": "Suppose now that in a nearby town, the rate of change of CO2 emissions is modeled by $F'(t) = 0.6e^{-0.1t}\\,\\mathrm{metric\\,tons}$, where $t$ is the number of years after 2010. Find the net change in CO2 emissions in the years from 2010 to 2020.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose now that in a nearby town, the rate of change of CO2 emissions is modeled by $F'(t) = 0.6e^{-0.1t}\\,\\mathrm{metric\\,tons}$, where $t$ is the number of years after 2010. Find the net change in CO2 emissions in the years from 2010 to 2020."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecgu005j8onoero0fv3e",
+      "order": 103,
+      "title": "Definite integral representation",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136_TT1_Practice2",
+        "定积分",
+        "Riemann sums",
+        "integrals"
+      ],
+      "question": "The limit $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} f(x_i) \\Delta x$ can be expressed as a definite integral on the interval $[a, b]$. What are $a$, $b$, and $f(x)$ in this example?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "The limit $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} f(x_i) \\Delta x$ can be expressed as a definite integral on the interval $[a, b]$. What are $a$, $b$, and $f(x)$ in this example?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecp4005l8onodire7p9r",
+      "order": 104,
+      "title": "Solution to Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136TT2practice",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Consider the differential equation $\\frac{dy}{dt} = ay$. Which of the following functions is a solution for this differential equation?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Consider the differential equation $\\frac{dy}{dt} = ay$. Which of the following functions is a solution for this differential equation?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$y(t) = 4$"
+          },
+          {
+            "id": "B",
+            "label": "$y(t) = e^t$"
+          },
+          {
+            "id": "C",
+            "label": "$y(t) = 35$"
+          },
+          {
+            "id": "D",
+            "label": "$y(t) = a$"
+          },
+          {
+            "id": "E",
+            "label": "$y(t) = \\sin(t)$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecxk005n8ono7o5vd5xj",
+      "order": 105,
+      "title": "Tangent Line to a Function",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "notebookTitle": "11 - 泰勒级数：从导数拼出函数",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "泰勒级数",
+        "Taylor series",
+        "tangent line"
+      ],
+      "question": "Let $P(x) = -2 + 5(x - 3) + 3(x - 3)^2$ be the degree-2 Taylor polynomial of $y = f(x)$ centered at $x = 3$. Find the equation of the tangent line to $y = f(x)$ at the point $(3, f(3))$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $P(x) = -2 + 5(x - 3) + 3(x - 3)^2$ be the degree-2 Taylor polynomial of $y = f(x)$ centered at $x = 3$. Find the equation of the tangent line to $y = f(x)$ at the point $(3, f(3))$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoecyl005p8onolz8sq9bk",
+      "order": 106,
+      "title": "Degree-3 Taylor Polynomial",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "notebookTitle": "11 - 泰勒级数：从导数拼出函数",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "泰勒级数",
+        "Taylor series"
+      ],
+      "question": "Let $f(x)$ be a function with the following properties: $f(4) = 3$, $f'(4) = -1$, $f''(4) = 6$, $f'''(4) = -5$. Write the degree-3 Taylor polynomial of $f(x)$ centered at $x = 4$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $f(x)$ be a function with the following properties: $f(4) = 3$, $f'(4) = -1$, $f''(4) = 6$, $f'''(4) = -5$. Write the degree-3 Taylor polynomial of $f(x)$ centered at $x = 4$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeczm005r8ono8ekdtfe6",
+      "order": 107,
+      "title": "Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "easy",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "反常积分",
+        "improper integral"
+      ],
+      "question": "What is the largest finite value of $b$ for which the following integral is improper? $$I = \\frac{1}{I} \\frac{2 + \\\\sin(x)}{(x + 1)^2} \\, \\, dx$$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "What is the largest finite value of $b$ for which the following integral is improper? $$I = \\frac{1}{I} \\frac{2 + \\\\sin(x)}{(x + 1)^2} \\, \\, dx$$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed0o005t8onon5b6n9ta",
+      "order": 108,
+      "title": "Differential Equation Example",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Let $P(t)$ be the population of bacteria in a petri dish after $t$ seconds. The rate of change of this population with respect to time is proportional to the number of bacteria in the petri dish. Write an example of a differential equation involving $P$ that agrees with the previous sentence.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $P(t)$ be the population of bacteria in a petri dish after $t$ seconds. The rate of change of this population with respect to time is proportional to the number of bacteria in the petri dish. Write an example of a differential equation involving $P$ that agrees with the previous sentence."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed1p005v8ono5gfpq7cx",
+      "order": 109,
+      "title": "Integral Comparison",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "级数",
+        "comparison test"
+      ],
+      "question": "Write an integral of the form $$I = \\frac{1}{x + 3} \\, \\, dx$$ that can be compared to $$I = \\frac{e^{-x}}{\\sqrt(x + 3)} \\, \\, dx$$ in order to explain why your solution to part (a) is correct.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Write an integral of the form $$I = \\frac{1}{x + 3} \\, \\, dx$$ that can be compared to $$I = \\frac{e^{-x}}{\\sqrt(x + 3)} \\, \\, dx$$ in order to explain why your solution to part (a) is correct."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed2q005x8onofo9as935",
+      "order": 110,
+      "title": "Explanation of Comparison",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 3,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "级数",
+        "comparison test"
+      ],
+      "question": "Explain in 1-5 sentences how your answer from part (b) can be compared to $$I = I \\frac{1}{x + 3}$$ to conclude your answer from (a).",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Explain in 1-5 sentences how your answer from part (b) can be compared to $$I = I \\frac{1}{x + 3}$$ to conclude your answer from (a)."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed3r005z8ono85ojde8z",
+      "order": 111,
+      "title": "General Solution of Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 3,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Find the general solution of the following differential equation: $$\\frac{dy}{dx} = 2y - y^2$$. Show your work.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find the general solution of the following differential equation: $$\\frac{dy}{dx} = 2y - y^2$$. Show your work."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed4s00618ono5exo00n0",
+      "order": 112,
+      "title": "Velocity Function from Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 3,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "A particle’s velocity $u(t)$ at $t$ seconds is measured in millimeters per second, where $$\\frac{du}{dt} = 2u - tu$$. For this question, $t > 0$. The initial velocity of the particle is $6 \\, \\mathrm{mm/min}$. Use your solution from part (a) to find the velocity function for this particle. Show your work.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "A particle’s velocity $u(t)$ at $t$ seconds is measured in millimeters per second, where $$\\frac{du}{dt} = 2u - tu$$. For this question, $t > 0$. The initial velocity of the particle is $6 \\, \\mathrm{mm/min}$. Use your solution from part (a) to find the velocity function for this particle. Show your work."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed5r00638ono16rdo35x",
+      "order": 113,
+      "title": "Approximation of Solution",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "easy",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Calculate $y'(2)$ for the differential equation $$\\frac{dy}{dx} = 2y$$ where $y(2) = 6$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Calculate $y'(2)$ for the differential equation $$\\frac{dy}{dx} = 2y$$ where $y(2) = 6$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed6p00658onot9srtk3z",
+      "order": 114,
+      "title": "Taylor Polynomial Approximation",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "notebookTitle": "11 - 泰勒级数：从导数拼出函数",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 3,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "泰勒级数",
+        "Taylor series",
+        "differential equations"
+      ],
+      "question": "Use your answers to parts (a) and (b) of this question to calculate a Taylor polynomial of degree 2 for the solution of the differential equation $y$, centered at $x = 2$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Use your answers to parts (a) and (b) of this question to calculate a Taylor polynomial of degree 2 for the solution of the differential equation $y$, centered at $x = 2$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoed7p00678onok6bgs0mk",
+      "order": 115,
+      "title": "Estimated Value Expression",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "notebookTitle": "11 - 泰勒级数：从导数拼出函数",
+      "type": "short_answer",
+      "difficulty": "easy",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "MAT136UTSG_TT2_2024",
+        "泰勒级数",
+        "differential equations"
+      ],
+      "question": "Use your approximation to write an expression that is equal to an estimated value of $y(2.25)$. You do not have to simplify this expression.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Use your approximation to write an expression that is equal to an estimated value of $y(2.25)$. You do not have to simplify this expression."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedfw00698onohbrg1cyb",
+      "order": 116,
+      "title": "Riemann Sum Approximation",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "Consider the following Riemann sum approximation with $n$ subdivisions to $\\int_a^b f(x) \\, dx$. (a) Is it a left or right Riemann sum? Would the other one be larger or smaller? (b) What are $a$, $b$, $n$, and $\\Delta x$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Consider the following Riemann sum approximation with $n$ subdivisions to $\\int_a^b f(x) \\, dx$. (a) Is it a left or right Riemann sum? Would the other one be larger or smaller? (b) What are $a$, $b$, $n$, and $\\Delta x$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedh2006b8onou2f6o9tk",
+      "order": 117,
+      "title": "Evaluate Riemann Sum",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "Riemann sum"
+      ],
+      "question": "For $f(x) = 3x + 2$, evaluate the Riemann sum $\\sum_{i=0}^{3} f(x_i) \\Delta x$, where $\\Delta x = 2$ and $x_0 = 3$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For $f(x) = 3x + 2$, evaluate the Riemann sum $\\sum_{i=0}^{3} f(x_i) \\Delta x$, where $\\Delta x = 2$ and $x_0 = 3$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedi5006d8onozvh97hi5",
+      "order": 118,
+      "title": "Estimate Definite Integral Using Left Riemann Sum",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "Estimate $\\int_0^{1} e^x \\, dx$ using $n = 5$ rectangles and a left Riemann sum.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Estimate $\\int_0^{1} e^x \\, dx$ using $n = 5$ rectangles and a left Riemann sum."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedj8006f8onoaage379z",
+      "order": 119,
+      "title": "Evaluate Limits",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "limits"
+      ],
+      "question": "Evaluate each of the following limits. (a) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} i^2 \\cdot \\frac{1}{n}$ (b) $\\lim_{n \\to \\infty} \\sum_{i=0}^{n} 4 \\cdot 2^{i} \\cdot \\frac{1}{n}$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate each of the following limits. (a) $\\lim_{n \\to \\infty} \\sum_{i=1}^{n} i^2 \\cdot \\frac{1}{n}$ (b) $\\lim_{n \\to \\infty} \\sum_{i=0}^{n} 4 \\cdot 2^{i} \\cdot \\frac{1}{n}$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedk9006h8onozv7nvo9c",
+      "order": 120,
+      "title": "Evaluate Definite Integrals",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "Evaluate each of the following integrals: (a) $\\int_a^b f(x) \\, dx$ (b) $\\int_b^c f(x) \\, dx$ (c) $\\int_a^c f(x) \\, dx$ (d) $\\int_a^c |f(x)| \\, dx$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Evaluate each of the following integrals: (a) $\\int_a^b f(x) \\, dx$ (b) $\\int_b^c f(x) \\, dx$ (c) $\\int_a^c f(x) \\, dx$ (d) $\\int_a^c |f(x)| \\, dx$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedla006j8onoj4cgzfz9",
+      "order": 121,
+      "title": "Compare Definite Integrals",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "Without evaluating them, decide which of the two definite integrals in each pair is smaller. (a) $\\int_0^1 x \\, dx$ and $\\int_0^1 x^2 \\, dx$ (b) $\\int_2^3 2 \\, \\cos(x) \\, dx$ and $\\int_2^3 x \\, dx$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Without evaluating them, decide which of the two definite integrals in each pair is smaller. (a) $\\int_0^1 x \\, dx$ and $\\int_0^1 x^2 \\, dx$ (b) $\\int_2^3 2 \\, \\cos(x) \\, dx$ and $\\int_2^3 x \\, dx$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedma006l8onoyapetamv",
+      "order": 122,
+      "title": "Determine Definite Integrals from Given Values",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "definite integral"
+      ],
+      "question": "Given that $\\int_5^9 f(x) \\, dx = 5$, $\\int_1^9 f(x) \\, dx = 3$, and $\\int_1^5 f(x) \\, dx = 4$, determine each of the following: (a) $\\int_5^9 f(x) \\, dx$ (b) $\\int_3^5 f(x) \\, dx$ (c) $\\int_1^3 f(x) \\, dx$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Given that $\\int_5^9 f(x) \\, dx = 5$, $\\int_1^9 f(x) \\, dx = 3$, and $\\int_1^5 f(x) \\, dx = 4$, determine each of the following: (a) $\\int_5^9 f(x) \\, dx$ (b) $\\int_3^5 f(x) \\, dx$ (c) $\\int_1^3 f(x) \\, dx$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedna006n8onou1tnje86",
+      "order": 123,
+      "title": "Fundamental Theorem of Calculus",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "Fundamental Theorem of Calculu"
+      ],
+      "question": "Suppose that $F'(x) = f(x)$ and $\\int_0^{\\pi} f(x) \\, dx = -2$. (a) Is it possible that $F(x) = \\cos(x)$? (b) Is it possible that $F(x) = \\sin(x)$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose that $F'(x) = f(x)$ and $\\int_0^{\\pi} f(x) \\, dx = -2$. (a) Is it possible that $F(x) = \\cos(x)$? (b) Is it possible that $F(x) = \\sin(x)$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedoa006p8ono7fsjf534",
+      "order": 124,
+      "title": "Determine Function Values Using Fundamental Theorem",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "Fundamental Theorem of Calculu"
+      ],
+      "question": "Suppose that $\\int_3^5 F'(t) \\, dt = 5$ and $F(3) = 2$. (a) If possible, determine $F(5)$. (b) If possible, determine $F(4)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Suppose that $\\int_3^5 F'(t) \\, dt = 5$ and $F(3) = 2$. (a) If possible, determine $F(5)$. (b) If possible, determine $F(4)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedpb006r8onocwp6l4wm",
+      "order": 125,
+      "title": "Compute Derivative of Function",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "derivative"
+      ],
+      "question": "The secant function is defined by $\\sec(x) = \\frac{1}{\\cos(x)}$. (a) Compute the derivative of $f(x) = \\tan(x)$. (b) Deduce the value of the integral $\\int_{-\\frac{\\pi}{4}}^{\\frac{\\pi}{4}} \\sec^2(x) \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "The secant function is defined by $\\sec(x) = \\frac{1}{\\cos(x)}$. (a) Compute the derivative of $f(x) = \\tan(x)$. (b) Deduce the value of the integral $\\int_{-\\frac{\\pi}{4}}^{\\frac{\\pi}{4}} \\sec^2(x) \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedqf006t8onopocdctuw",
+      "order": 126,
+      "title": "Compute Derivative of Integral Function",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week 2-3 solutions",
+        "定积分",
+        "derivative"
+      ],
+      "question": "Compute the derivative of $f(x) = \\int_0^{e^{\\pi x}} \\cos(2t^2) \\, dt$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute the derivative of $f(x) = \\int_0^{e^{\\pi x}} \\cos(2t^2) \\, dt$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedyk006v8onoxk80mhq1",
+      "order": 127,
+      "title": "Compute integral using substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Compute $$\\int (2t - 7)^{73} \\, dt$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $$\\int (2t - 7)^{73} \\, dt$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoedzj006x8onoln33dkgh",
+      "order": 128,
+      "title": "Compute integral using substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Compute $$\\int t^2 (t^3 - 3)^{10} \\, dt$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $$\\int t^2 (t^3 - 3)^{10} \\, dt$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee0k006z8onoul8elzc3",
+      "order": 129,
+      "title": "Compute integral using substitution",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "换元法",
+        "integration",
+        "substitution"
+      ],
+      "question": "Compute $\\int \\frac{\\cos x}{\\sqrt{x}} \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $\\int \\frac{\\cos x}{\\sqrt{x}} \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee1k00718ono20j7v8fe",
+      "order": 130,
+      "title": "Compute area inside an asteroid",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "面积与体积",
+        "area",
+        "integration"
+      ],
+      "question": "Given that $\\int_{0}^{1} (1 - x^{2/3})^{3/2} \\, dx = \\frac{3\\pi}{32}$, compute the area inside the following asteroid.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Given that $\\int_{0}^{1} (1 - x^{2/3})^{3/2} \\, dx = \\frac{3\\pi}{32}$, compute the area inside the following asteroid."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee2n00738onot7vwct4f",
+      "order": 131,
+      "title": "Compute integral using integration by parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Compute $\\int t^2 \\sin(t) \\, dt$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $\\int t^2 \\sin(t) \\, dt$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee3o00758ono57e3fow8",
+      "order": 132,
+      "title": "Compute integral using integration by parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Compute $\\int x^{10} \\ln(x) \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $\\int x^{10} \\ln(x) \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee4q00778onobaidyr0s",
+      "order": 133,
+      "title": "Compute integral using integration by parts",
+      "notebookId": "queue-mat136-05-integration-by-parts",
+      "notebookTitle": "05 - 分部积分：从乘积法则到选 u",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "分部积分",
+        "integration",
+        "integration by parts"
+      ],
+      "question": "Compute $$\\int e^{2x} \\cos(x) \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $$\\int e^{2x} \\cos(x) \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoee5t00798onot1234pf2",
+      "order": 134,
+      "title": "Determine integral of error function",
+      "notebookId": "queue-mat136-02-substitution",
+      "notebookTitle": "02 - 换元法：从反向链式法则到定积分换元",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week4_solutions",
+        "换元法",
+        "integration",
+        "error function"
+      ],
+      "question": "Determine $\\int \\mathrm{erf}(x) \\, dx$ where $\\mathrm{erf}(x) = \\frac{2}{\\sqrt{\\pi}} \\int_{0}^{x} e^{-t^2} \\, dt$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine $\\int \\mathrm{erf}(x) \\, dx$ where $\\mathrm{erf}(x) = \\frac{2}{\\sqrt{\\pi}} \\int_{0}^{x} e^{-t^2} \\, dt$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeee0007b8onoroa4rb0d",
+      "order": 135,
+      "title": "Convergence of Improper Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Explain whether or not the following statement is true: if $f$ is a continuous function and $\\int_0^a f(x) \\, dx$ converges, then so does $\\int_0^{\\infty} f(x) \\, dx$ for all positive $a > 0$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Explain whether or not the following statement is true: if $f$ is a continuous function and $\\int_0^a f(x) \\, dx$ converges, then so does $\\int_0^{\\infty} f(x) \\, dx$ for all positive $a > 0$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeef1007d8onolb8tsvdl",
+      "order": 136,
+      "title": "Convergence of Improper Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Explain whether or not the following statement is true: if $f$ is continuous and positive with $\\lim_{x \\to \\infty} f(x) = 0$, then $\\int_0^{\\infty} f(x) \\, dx < \\infty$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Explain whether or not the following statement is true: if $f$ is continuous and positive with $\\lim_{x \\to \\infty} f(x) = 0$, then $\\int_0^{\\infty} f(x) \\, dx < \\infty$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeeg2007f8onoqi551lfw",
+      "order": 137,
+      "title": "Evaluate Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Compute $$\\int_1^{\\infty} \\frac{z}{(1 + z^2)^3} \\, dz$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $$\\int_1^{\\infty} \\frac{z}{(1 + z^2)^3} \\, dz$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeeh5007h8onob6w7o775",
+      "order": 138,
+      "title": "Evaluate Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Compute $\\int_0^1 \\frac{\\ln(x)}{x} \\, dx$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $\\int_0^1 \\frac{\\ln(x)}{x} \\, dx$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeei6007j8onoct88o1yy",
+      "order": 139,
+      "title": "Evaluate Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Compute $$\\int_3^{\\infty} \\frac{1}{x(\\ln(x))^2} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $$\\int_3^{\\infty} \\frac{1}{x(\\ln(x))^2} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeej8007l8onoa136r4m0",
+      "order": 140,
+      "title": "Convergence of Improper Integrals",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "If $\\int_a^{\\infty} f(x) \\, dx$ converges, what can you say about $\\int_a^{\\infty} g(x) \\, dx$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "If $\\int_a^{\\infty} f(x) \\, dx$ converges, what can you say about $\\int_a^{\\infty} g(x) \\, dx$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeekb007n8onoi8zsxsca",
+      "order": 141,
+      "title": "Convergence of Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Study the convergence of the improper integral $$\\int_1^{\\infty} \\frac{1}{1+x} \\, dx$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the improper integral $$\\int_1^{\\infty} \\frac{1}{1+x} \\, dx$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeelc007p8onoozkexs43",
+      "order": 142,
+      "title": "Convergence of Improper Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "Study the convergence of the improper integral $$\\int_1^{\\infty} \\frac{1}{u + u^2} \\, du$$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the improper integral $$\\int_1^{\\infty} \\frac{1}{u + u^2} \\, du$$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeemd007r8onok7wq01va",
+      "order": 143,
+      "title": "Convergence of Planck’s Radiation Law Integral",
+      "notebookId": "queue-mat136-08-improper-integrals",
+      "notebookTitle": "08 - 反常积分：从极限定义到比较判别",
+      "type": "proof",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week5_solutions",
+        "反常积分",
+        "improper integrals"
+      ],
+      "question": "In Planck’s Radiation Law, we encounter the integral $$\\int_1^{\\infty} \\frac{1}{x^5 (e^{1/x} - 1)} \\, dx$$. Argue that $1 + t \\leq e^t$ for $t \\geq 0$, and deduce that this integral converges.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "In Planck’s Radiation Law, we encounter the integral $$\\int_1^{\\infty} \\frac{1}{x^5 (e^{1/x} - 1)} \\, dx$$. Argue that $1 + t \\leq e^t$ for $t \\geq 0$, and deduce that this integral converges."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeeul007t8onox5wrqjb1",
+      "order": 144,
+      "title": "Ordinary Differential Equations - Bank Account Model",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Let $B(t)$ be the amount of money in a salesman’s bank account at time $t$. Suppose that the salesman deposits money at a constant rate $d > 0$ and spends money at a rate proportional to the amount of money in the account. Find an ODE for $B(t)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Let $B(t)$ be the amount of money in a salesman’s bank account at time $t$. Suppose that the salesman deposits money at a constant rate $d > 0$ and spends money at a rate proportional to the amount of money in the account. Find an ODE for $B(t)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeevn007v8onoo8x66097",
+      "order": 145,
+      "title": "Differential Equation Solution Verification",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Is $y = x^3$ a solution to the differential equation $xy' - 3y = 0$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Is $y = x^3$ a solution to the differential equation $xy' - 3y = 0$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeewo007x8ono9nrxg1hp",
+      "order": 146,
+      "title": "Euler's Method Estimate",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Does Euler’s method give an over-estimate or an under-estimate if (i) $y(0) = 2$? (ii) $y(0) = -2$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Does Euler’s method give an over-estimate or an under-estimate if (i) $y(0) = 2$? (ii) $y(0) = -2$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeexq007z8onobq0oosxc",
+      "order": 147,
+      "title": "Equilibrium Solutions of a Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Consider the equation $\\frac{dy}{dx} = y(1 - y)$. Find all equilibrium solutions.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Consider the equation $\\frac{dy}{dx} = y(1 - y)$. Find all equilibrium solutions."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeeyt00818onoi2120o33",
+      "order": 148,
+      "title": "Solve a Differential Equation with Initial Condition",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Solve the differential equation $\\frac{dy}{dx} = \\frac{4x}{y^2}$ and find the particular solution corresponding to the initial condition $y(0) = 1$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Solve the differential equation $\\frac{dy}{dx} = \\frac{4x}{y^2}$ and find the particular solution corresponding to the initial condition $y(0) = 1$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeezx00838ono0tv64h81",
+      "order": 149,
+      "title": "Solve a Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Solve the differential equation $\\frac{dy}{dt} = ky^2(1 + t^2).$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Solve the differential equation $\\frac{dy}{dt} = ky^2(1 + t^2).$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoef0z00858ono42rb313c",
+      "order": 150,
+      "title": "Solve a Differential Equation",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week8_solutions",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Solve the differential equation $\\frac{dL}{dx} = k(x + a)(L - b)$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Solve the differential equation $\\frac{dL}{dx} = k(x + a)(L - b)$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoef9900878onoj6xdm0kg",
+      "order": 151,
+      "title": "SIR Model and COVID-19",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week9_solutions",
+        "微分方程",
+        "differential equations",
+        "SIR model"
+      ],
+      "question": "In the context of the SIR model for disease transmission, consider the following: (a) When people speak of 'flattening the curve', which of these three curves do they most directly mean to flatten? (b) Consider each of the following measures taken to slow the spread of COVID-19, and indicate whether they increase or decrease the constants $a$ and $b$: (i) Developing medicines to speed up recovery. (ii) Enacting social distancing. (iii) Encouraging all people to wear a face-mask in public.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "In the context of the SIR model for disease transmission, consider the following: (a) When people speak of 'flattening the curve', which of these three curves do they most directly mean to flatten? (b) Consider each of the following measures taken to slow the spread of COVID-19, and indicate whether they increase or decrease the constants $a$ and $b$: (i) Developing medicines to speed up recovery. (ii) Enacting social distancing. (iii) Encouraging all people to wear a face-mask in public."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefab00898ono0whc5i3u",
+      "order": 152,
+      "title": "Population Dynamics of Foxes and Hares",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "hard",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week9_solutions",
+        "微分方程",
+        "differential equations",
+        "population dynamics"
+      ],
+      "question": "For the system of differential equations given by $x'(t) = -3x + 6xy$ and $y'(t) = y - 4xy$, consider the following: (a) Identify which variable, $x$ or $y$, represents the fox population and which variable represents the hare population. (b) Find the equilibrium points (constant solutions) for the system of differential equations and explain their significance. (c) Find a single differential equation whose solutions give the fox population as a function of the hare population and solve it.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "For the system of differential equations given by $x'(t) = -3x + 6xy$ and $y'(t) = y - 4xy$, consider the following: (a) Identify which variable, $x$ or $y$, represents the fox population and which variable represents the hare population. (b) Find the equilibrium points (constant solutions) for the system of differential equations and explain their significance. (c) Find a single differential equation whose solutions give the fox population as a function of the hare population and solve it."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefil008b8onomodhc5l6",
+      "order": 153,
+      "title": "Convergence of Sequences",
+      "notebookId": "queue-mat136-07-sequence",
+      "notebookTitle": "07 - 数列：从通项到极限",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week10_solutions",
+        "数列",
+        "sequences",
+        "convergence"
+      ],
+      "question": "Determine if each of the following sequences converges or diverges. If it converges, find its limit. (a) $a_n = 2^n$ (b) $a_n = (0.2)^n$ (c) $a_n = (-0.2)^n$ (d) $a_n = 3 + e^{-2n}$ (e) $a_n = 3 + e^{2n}$ (f) $a_n = \\bigg(\\frac{2}{3}\\bigg)^n$ (g) $a_n = \\frac{2^{n+1}}{n}$ (h) $a_n = \\frac{(-1)^n}{n}$ (i) $a_n = \\frac{2^n + (-1)^n 5}{4n} - (-1)^n 3$ (j) $a_n = \\frac{\\sin(n)}{n}$",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Determine if each of the following sequences converges or diverges. If it converges, find its limit. (a) $a_n = 2^n$ (b) $a_n = (0.2)^n$ (c) $a_n = (-0.2)^n$ (d) $a_n = 3 + e^{-2n}$ (e) $a_n = 3 + e^{2n}$ (f) $a_n = \\bigg(\\frac{2}{3}\\bigg)^n$ (g) $a_n = \\frac{2^{n+1}}{n}$ (h) $a_n = \\frac{(-1)^n}{n}$ (i) $a_n = \\frac{2^n + (-1)^n 5}{4n} - (-1)^n 3$ (j) $a_n = \\frac{\\sin(n)}{n}$"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefjm008d8onohdwrz5tl",
+      "order": 154,
+      "title": "Recursive Sequence",
+      "notebookId": "queue-mat136-07-sequence",
+      "notebookTitle": "07 - 数列：从通项到极限",
+      "type": "proof",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week10_solutions",
+        "数列",
+        "sequences",
+        "recursion"
+      ],
+      "question": "Consider the sequence $(a_n)_{n \\geq 1}$ defined recursively by $a_1 = 1$ and $a_n = 2 + a_{n-1}$. Write down the first 3 terms of the sequence, prove that it converges and determine its limit.",
+      "publicContent": {
+        "type": "proof",
+        "stem": "Consider the sequence $(a_n)_{n \\geq 1}$ defined recursively by $a_1 = 1$ and $a_n = 2 + a_{n-1}$. Write down the first 3 terms of the sequence, prove that it converges and determine its limit."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefkn008f8onolea3ntxe",
+      "order": 155,
+      "title": "Sum of Series",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week10_solutions",
+        "级数",
+        "series",
+        "summation"
+      ],
+      "question": "Compute $\\sum_{n=1}^{\\infty} \\frac{1}{n(n + 1)}$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Compute $\\sum_{n=1}^{\\infty} \\frac{1}{n(n + 1)}$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeflq008h8onou4ywvyge",
+      "order": 156,
+      "title": "Geometric Series",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week10_solutions",
+        "级数",
+        "series",
+        "geometric"
+      ],
+      "question": "Find the closed-form for the following geometric series and determine for which values of $x$ they converge: (a) $\\sum_{n=0}^{\\infty} (5x)^n$ (b) $\\sum_{n=0}^{\\infty} (1 - x)^n$ (c) $\\sum_{n=2}^{\\infty} (1 - x)^n$ (d) $\\sum_{n=0}^{\\infty} (1 - \\frac{x}{2})^n$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Find the closed-form for the following geometric series and determine for which values of $x$ they converge: (a) $\\sum_{n=0}^{\\infty} (5x)^n$ (b) $\\sum_{n=0}^{\\infty} (1 - x)^n$ (c) $\\sum_{n=2}^{\\infty} (1 - x)^n$ (d) $\\sum_{n=0}^{\\infty} (1 - \\frac{x}{2})^n$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefmt008j8onoubt91rip",
+      "order": 157,
+      "title": "Future Value of Investment",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week10_solutions",
+        "级数",
+        "finance",
+        "investment"
+      ],
+      "question": "Bob invests \\$200 at the start of each month for $24\\,\\mathrm{months}$, starting now. If the investment yields $0.5\\%$ per month, compounded monthly, what is its value at the end of the $24\\,\\mathrm{months}$?",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Bob invests \\$200 at the start of each month for $24\\,\\mathrm{months}$, starting now. If the investment yields $0.5\\%$ per month, compounded monthly, what is its value at the end of the $24\\,\\mathrm{months}$?"
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefv7008l8onosyuqtbt6",
+      "order": 158,
+      "title": "Convergence of Series 1",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week11_solutions",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{n + 2n}{n^2} $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{n + 2n}{n^2} $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefwa008n8ono6s31sitw",
+      "order": 159,
+      "title": "Convergence of Series 2",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week11_solutions",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{1}{e^n} $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{1}{e^n} $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefxc008p8onobrb2vt5d",
+      "order": 160,
+      "title": "Convergence of Series 3",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week11_solutions",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{n+1}{2n + 3} $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{n+1}{2n + 3} $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefye008r8onoibssjyy7",
+      "order": 161,
+      "title": "Convergence of Series 4",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week11_solutions",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{10n}{n^5} $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the series $$ \\sum_{n=1}^{\\infty} \\frac{10n}{n^5} $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoefzg008t8onoqv4gwmb3",
+      "order": 162,
+      "title": "Convergence of Series 5",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 1,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Week11_solutions",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Study the convergence of the series $$ \\sum_{n=2}^{\\infty} \\frac{(2n-1)!}{n^2 2^n} $$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "Study the convergence of the series $$ \\sum_{n=2}^{\\infty} \\frac{(2n-1)!}{n^2 2^n} $$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeg7r008v8onobzg3d2xx",
+      "order": 163,
+      "title": "Convergence of Power Series",
+      "notebookId": "queue-mat136-10-power-series",
+      "notebookTitle": "10 - 幂级数：收敛半径与可靠区间",
+      "type": "choice",
+      "difficulty": "easy",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "幂级数",
+        "power series",
+        "convergence"
+      ],
+      "question": "True or False: If a power series of the form $\\sum_{k=0}^{\\infty} a_k x^k$ converges at $x = 10$ then it must converge at $x = -9$.",
+      "publicContent": {
+        "type": "choice",
+        "stem": "True or False: If a power series of the form $\\sum_{k=0}^{\\infty} a_k x^k$ converges at $x = 10$ then it must converge at $x = -9$.",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "True"
+          },
+          {
+            "id": "B",
+            "label": "False"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeg8t008x8onojvq9ty4b",
+      "order": 164,
+      "title": "Integral Representation of Limit",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "定积分",
+        "integrals",
+        "limits"
+      ],
+      "question": "Which integral is represented by the following limit? $$ \\lim_{n \\to \\infty} \\sum_{i=0}^{n-1} f(x_i) \\Delta x $$ where $$ \\Delta x = \\frac{b-a}{n} $$ and $$ x_i = a + i \\Delta x $$.",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Which integral is represented by the following limit? $$ \\lim_{n \\to \\infty} \\sum_{i=0}^{n-1} f(x_i) \\Delta x $$ where $$ \\Delta x = \\frac{b-a}{n} $$ and $$ x_i = a + i \\Delta x $$.",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$$ \\int_a^b f(x) \\, dx $$"
+          },
+          {
+            "id": "B",
+            "label": "$$ \\int_1^{\\infty} f(x) \\, dx $$"
+          },
+          {
+            "id": "C",
+            "label": "$$ \\int_0^1 f(x) \\, dx $$"
+          },
+          {
+            "id": "D",
+            "label": "$$ \\int_0^1 x \\, dx $$"
+          },
+          {
+            "id": "E",
+            "label": "none of the above"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeg9u008z8ono0ktyaki9",
+      "order": 165,
+      "title": "Velocity Measurement Frequency",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "定积分",
+        "velocity",
+        "Riemann sums"
+      ],
+      "question": "How often would the athlete's velocity need to be measured in order to ensure that a left-hand sum approximating the total distance traveled between $t = 0$ and $t = 0.6$ was within $0.7 \\, \\mathrm{m}$ of the actual value? Choose the greatest value that satisfies this criteria.",
+      "publicContent": {
+        "type": "choice",
+        "stem": "How often would the athlete's velocity need to be measured in order to ensure that a left-hand sum approximating the total distance traveled between $t = 0$ and $t = 0.6$ was within $0.7 \\, \\mathrm{m}$ of the actual value? Choose the greatest value that satisfies this criteria.",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "every $0.1 \\, \\mathrm{s}$"
+          },
+          {
+            "id": "B",
+            "label": "every $0.25 \\, \\mathrm{s}$"
+          },
+          {
+            "id": "C",
+            "label": "every $0.5 \\, \\mathrm{s}$"
+          },
+          {
+            "id": "D",
+            "label": "every second"
+          },
+          {
+            "id": "E",
+            "label": "none of the above"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegav00918onool5f0ync",
+      "order": 166,
+      "title": "Divergence of Sequences",
+      "notebookId": "queue-mat136-07-sequence",
+      "notebookTitle": "07 - 数列：从通项到极限",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 2,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "数列",
+        "sequences",
+        "divergence"
+      ],
+      "question": "Which one of the following sequences diverges as $n$ approaches $\\infty$?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Which one of the following sequences diverges as $n$ approaches $\\infty$?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$\\{ 1 + \\}$"
+          },
+          {
+            "id": "B",
+            "label": "$\\{ \\frac{1}{n} \\}$"
+          },
+          {
+            "id": "C",
+            "label": "$\\{ \\sin(n) \\}$"
+          },
+          {
+            "id": "D",
+            "label": "$\\{ n \\cos(n \\pi) \\}$"
+          },
+          {
+            "id": "E",
+            "label": "none of the above sequences diverge"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegbx00938onohp2d5st4",
+      "order": 167,
+      "title": "Carbon Monoxide Mixing Model",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 10,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "微分方程",
+        "differential equations",
+        "mixing model"
+      ],
+      "question": "The paper Cigarette Smoke in Closed Spaces, published by Ulrich Hoegg in 1972, quantified the impact of people smoking cigarettes on non-smokers in the same closed public spaces. One of the substances released into the air when people smoke is carbon monoxide. It can cause headaches and dizziness when it makes up more than $0.023$ of the air.\n\nResearchers tested the concentration of substances in a $25\\,\n\\mathrm{m}^3$ test chamber with air-circulating fans. In one experiment, air containing $5\\%$ carbon monoxide was introduced at a rate of $0.003\\,\n\\mathrm{m}^3/\\mathrm{min}$. Assume that the carbon monoxide mixes with the rest of the air immediately, and that the mixture leaves the room at the same rate as it entered.\n\n(a) The experimenters decide to keep going until the concentration of carbon monoxide is greater than $0.023$. Will such a level ever be reached? Give a one-sentence explanation that does not involve a computation.\n\n(b) At what rate is the volume of carbon monoxide, $Q$, entering the room at $t$ minutes?\n\n(c) At what rate is the volume of carbon monoxide, $Q$, leaving the room at $t$ minutes?\n\n(d) Use your answers to parts (b) and (c) to write a differential equation for $\\frac{dQ}{dt}$. Your answer may only contain the variables $t$ and $Q$.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "The paper Cigarette Smoke in Closed Spaces, published by Ulrich Hoegg in 1972, quantified the impact of people smoking cigarettes on non-smokers in the same closed public spaces. One of the substances released into the air when people smoke is carbon monoxide. It can cause headaches and dizziness when it makes up more than $0.023$ of the air.\n\nResearchers tested the concentration of substances in a $25\\,\n\\mathrm{m}^3$ test chamber with air-circulating fans. In one experiment, air containing $5\\%$ carbon monoxide was introduced at a rate of $0.003\\,\n\\mathrm{m}^3/\\mathrm{min}$. Assume that the carbon monoxide mixes with the rest of the air immediately, and that the mixture leaves the room at the same rate as it entered.\n\n(a) The experimenters decide to keep going until the concentration of carbon monoxide is greater than $0.023$. Will such a level ever be reached? Give a one-sentence explanation that does not involve a computation.\n\n(b) At what rate is the volume of carbon monoxide, $Q$, entering the room at $t$ minutes?\n\n(c) At what rate is the volume of carbon monoxide, $Q$, leaving the room at $t$ minutes?\n\n(d) Use your answers to parts (b) and (c) to write a differential equation for $\\frac{dQ}{dt}$. Your answer may only contain the variables $t$ and $Q$."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegd000958onod3hg9edr",
+      "order": 168,
+      "title": "Pyramid Volume by Cross Sections",
+      "notebookId": "queue-mat136-04-area-volume",
+      "notebookTitle": "04 - 面积与体积：从曲线间面积到切片法",
+      "type": "short_answer",
+      "difficulty": "medium",
+      "points": 13,
+      "tags": [
+        "MAT136",
+        "题库",
+        "Final Exam 2019",
+        "面积与体积",
+        "volume",
+        "cross sections",
+        "Riemann sum"
+      ],
+      "question": "The Pyramid of Menkaure is one of the three main pyramids of Giza. It has height $65.5\\,\n\\mathrm{m}$ and a square base with side length $108.5\\,\n\\mathrm{m}$. Assume that it is a perfect square-based pyramid.\n\nPartition the height interval $[0,65.5]$ into $n$ intervals of equal size $\\Delta h$ with endpoints $h_i$.\n\n(a) Write a formula for $P(h_i)$, the length of one side of a square cross-section $h_i$ metres above the base.\n\n(b) Write a sum that gives the approximate volume of a slice with thickness $\\Delta h$ located $h_i$ metres above the base.\n\n(c) Use your answer from (b) to write an expression that represents the approximate volume of the pyramid.\n\n(d) Write an integral that computes the exact volume of the pyramid. Explain how it follows from your previous work. You do not need to evaluate your integral.",
+      "publicContent": {
+        "type": "short_answer",
+        "stem": "The Pyramid of Menkaure is one of the three main pyramids of Giza. It has height $65.5\\,\n\\mathrm{m}$ and a square base with side length $108.5\\,\n\\mathrm{m}$. Assume that it is a perfect square-based pyramid.\n\nPartition the height interval $[0,65.5]$ into $n$ intervals of equal size $\\Delta h$ with endpoints $h_i$.\n\n(a) Write a formula for $P(h_i)$, the length of one side of a square cross-section $h_i$ metres above the base.\n\n(b) Write a sum that gives the approximate volume of a slice with thickness $\\Delta h$ located $h_i$ metres above the base.\n\n(c) Use your answer from (b) to write an expression that represents the approximate volume of the pyramid.\n\n(d) Write an integral that computes the exact volume of the pyramid. Explain how it follows from your previous work. You do not need to evaluate your integral."
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoeglc00978ono9bks1915",
+      "order": 169,
+      "title": "Antiderivative of a Continuous Function",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "定积分",
+        "antiderivative",
+        "integral"
+      ],
+      "question": "A function $f(x)$ is continuous and satisfies $\\int_{-1}^{0} f(x) \\, dx = -3$. Which of the following could describe an antiderivative $F(x)$ of $f(x)$?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "A function $f(x)$ is continuous and satisfies $\\int_{-1}^{0} f(x) \\, dx = -3$. Which of the following could describe an antiderivative $F(x)$ of $f(x)$?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$F(x) = 15 for$ $x < -1$, F(x) = 12 for $-1 < x < 0$, F(x) = 9 for $0 < x < 1$, F(x) = 6 for $1 < x < 2$, F(x) = 3 for $2 < x < 3$"
+          },
+          {
+            "id": "B",
+            "label": "$F(x) = 1 for$ $x < -1$, F(x) = -1 for $-1 < x < 1$, F(x) = 1 for $1 < x < 2$, F(x) = 1 for $2 < x < 3$"
+          },
+          {
+            "id": "C",
+            "label": "$F(x) = 3 for$ $x < -1$, F(x) = 4 for $-1 < x < 0$, F(x) = 5 for $0 < x < 1$, F(x) = -5 for $1 < x < 2$, F(x) = 1 for $2 < x < 3$"
+          },
+          {
+            "id": "D",
+            "label": "$F(x) = 1 for$ $x < -1$, F(x) = -1 for $-1 < x < 0$, F(x) = 1 for $0 < x < 1$, F(x) = 1 for $1 < x < 2$, F(x) = 1 for $2 < x < 3$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegme00998onopdvv99im",
+      "order": 170,
+      "title": "Integral Evaluation Interpretation",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "定积分",
+        "integral",
+        "interpretation"
+      ],
+      "question": "Craig is writing an open book online exam for MAT136 and he wants to find the exact value of the integral $$\\int_0^1 \\frac{1}{\\sqrt{x + 1}} \\, dx$$. He goes to WolframAlpha: How should Craig make sense of this result?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Craig is writing an open book online exam for MAT136 and he wants to find the exact value of the integral $$\\int_0^1 \\frac{1}{\\sqrt{x + 1}} \\, dx$$. He goes to WolframAlpha: How should Craig make sense of this result?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "He should write the solution: $\\sinh^{-1}(x)$."
+          },
+          {
+            "id": "B",
+            "label": "He should write the solution: $\\sinh^{-1}(0) - \\sinh^{-1}(1)$."
+          },
+          {
+            "id": "C",
+            "label": "He should write the solution: $\\ln(2) + 1$."
+          },
+          {
+            "id": "D",
+            "label": "He should write the solution: $\\ln(x^2 + 1) + x$."
+          },
+          {
+            "id": "E",
+            "label": "He should write the solution: Approximately equal to $1 - \\frac{1}{16} + \\frac{40}{3}$, using the Taylor series provided."
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegnd009b8ono4aq1yl3a",
+      "order": 171,
+      "title": "Differential Equation Scenario",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "微分方程",
+        "differential equations"
+      ],
+      "question": "Which differential equation best describes the following scenario? A gardener is filling a pot with water at a constant rate. At the same time, the pot is leaking at a rate proportional to the amount of water in the pot.",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Which differential equation best describes the following scenario? A gardener is filling a pot with water at a constant rate. At the same time, the pot is leaking at a rate proportional to the amount of water in the pot.",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$\\frac{dW}{dt} = a + bW$"
+          },
+          {
+            "id": "B",
+            "label": "$\\frac{dW}{dt} = a - bW$"
+          },
+          {
+            "id": "C",
+            "label": "$\\frac{dW}{dt} = -a + bW$"
+          },
+          {
+            "id": "D",
+            "label": "$\\frac{dW}{dt} = -a - bW$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegog009d8ono3odq0l61",
+      "order": 172,
+      "title": "Maximum Hairballs in a Cat",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "定积分",
+        "optimization",
+        "differential equations"
+      ],
+      "question": "The amount of hairballs in a cat’s belly at time $0 \\leq t \\leq 2.5$ is given by $f(t) = \\int_0^{\\pi} \\frac{3s - \\sin(3s)}{(t - 1)^2} \\, ds$. At what time will there be a maximum amount of hairballs in the cat’s belly?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "The amount of hairballs in a cat’s belly at time $0 \\leq t \\leq 2.5$ is given by $f(t) = \\int_0^{\\pi} \\frac{3s - \\sin(3s)}{(t - 1)^2} \\, ds$. At what time will there be a maximum amount of hairballs in the cat’s belly?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$t = 0$"
+          },
+          {
+            "id": "B",
+            "label": "$t = 1$"
+          },
+          {
+            "id": "C",
+            "label": "$t = \\frac{\\pi}{2}$"
+          },
+          {
+            "id": "D",
+            "label": "$t = 2.5$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegpl009f8onotux8eab1",
+      "order": 173,
+      "title": "Convergence of a Series",
+      "notebookId": "queue-mat136-09-series",
+      "notebookTitle": "09 - 级数：从部分和到判别法",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "级数",
+        "series",
+        "convergence"
+      ],
+      "question": "Consider a series $\\sum_{n=0}^{\\infty} c_n (x - 2)^n$, which converges when $x = 3$, but diverges when $x = -3$. Which of the following statements MUST be true?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Consider a series $\\sum_{n=0}^{\\infty} c_n (x - 2)^n$, which converges when $x = 3$, but diverges when $x = -3$. Which of the following statements MUST be true?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "It converges when $x = 0.$"
+          },
+          {
+            "id": "B",
+            "label": "It converges when $x = 1.$"
+          },
+          {
+            "id": "C",
+            "label": "It converges when $x = -2.$"
+          },
+          {
+            "id": "D",
+            "label": "It converges when $x = -4.$"
+          },
+          {
+            "id": "E",
+            "label": "None of the above."
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegqo009h8onoouorrsqb",
+      "order": 174,
+      "title": "Taylor Series of a Function",
+      "notebookId": "queue-mat136-11-taylor-series",
+      "notebookTitle": "11 - 泰勒级数：从导数拼出函数",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "泰勒级数",
+        "Taylor series"
+      ],
+      "question": "Consider the following function: $f(x) = \\int_0^x \\frac{\\sin(t)}{t} \\, dt$. Which of the following options is the Taylor series of $f(x)$$ centered at 0?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "Consider the following function: $f(x) = \\int_0^x \\frac{\\sin(t)}{t} \\, dt$. Which of the following options is the Taylor series of $f(x)$$ centered at 0?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$\\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n+1}}{(2n + 1)!}$"
+          },
+          {
+            "id": "B",
+            "label": "$\\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n+1}}{(2n + 1)! (n + 1)}$"
+          },
+          {
+            "id": "C",
+            "label": "$\\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n}}{(2n + 1)!}$"
+          },
+          {
+            "id": "D",
+            "label": "$\\sum_{n=0}^{\\infty} \\frac{(-1)^n x^{2n}}{(2n + 1)!}$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegrq009j8onopqgu7nhv",
+      "order": 175,
+      "title": "Population Dynamics of Lions and Antelopes",
+      "notebookId": "queue-mat136-06-differential-equations",
+      "notebookTitle": "06 - 微分方程：从变化率到斜率场",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "微分方程",
+        "population dynamics",
+        "differential equations"
+      ],
+      "question": "The populations of lions and antelopes in a savannah are governed by the differential equations $x'(t) = 5x - xy$ and $y'(t) = -4y + 2xy$. Given that lions eat the antelopes (and not the other way around), which quantity describes the number of lions over time?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "The populations of lions and antelopes in a savannah are governed by the differential equations $x'(t) = 5x - xy$ and $y'(t) = -4y + 2xy$. Given that lions eat the antelopes (and not the other way around), which quantity describes the number of lions over time?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$x(t)$"
+          },
+          {
+            "id": "B",
+            "label": "$y(t)$"
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    },
+    {
+      "id": "cmpwoegst009l8onobi0pblgr",
+      "order": 176,
+      "title": "Lion and Antelope Chase",
+      "notebookId": "queue-mat136-01-definite-integral",
+      "notebookTitle": "01 - 定积分：从矩形到基本定理",
+      "type": "choice",
+      "difficulty": "medium",
+      "points": 4,
+      "tags": [
+        "MAT136",
+        "题库",
+        "mat136-w22-final-exam",
+        "定积分",
+        "kinematics"
+      ],
+      "question": "A lion spots an antelope at a distance and starts to chase it: What is the total displacement of the lion when the antelope has travelled $x$ metres?",
+      "publicContent": {
+        "type": "choice",
+        "stem": "A lion spots an antelope at a distance and starts to chase it: What is the total displacement of the lion when the antelope has travelled $x$ metres?",
+        "selectionMode": "single",
+        "options": [
+          {
+            "id": "A",
+            "label": "$x$ metres."
+          },
+          {
+            "id": "B",
+            "label": "$\\int_0^x v_L(t) \\, dt$ metres."
+          },
+          {
+            "id": "C",
+            "label": "$d_L(x) - d_A(x)$ metres."
+          },
+          {
+            "id": "D",
+            "label": "$\\int_0^x v_L(t) \\, dt$ metres."
+          }
+        ]
+      },
+      "source": "database_snapshot"
+    }
+  ]
+}

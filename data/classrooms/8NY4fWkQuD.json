@@ -1,0 +1,996 @@
+{
+  "id": "8NY4fWkQuD",
+  "stage": {
+    "id": "8NY4fWkQuD",
+    "name": "近似面积的计算",
+    "language": "zh-CN",
+    "style": "interactive",
+    "createdAt": 1779089018505,
+    "updatedAt": 1779089018505
+  },
+  "scenes": [
+    {
+      "id": "scene_g93vpqQlPu",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "近似面积的计算",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "jhC6Ws5XfcG3a7bn7kb-i",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text__2HcrFgj",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>近似面积的计算</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_x2OpLHYm",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px\">• 考虑速度变化时如何计算行驶距离</p><p style=\"font-size:18px\">• 使用测量速度的方法提高面积计算精度</p><p style=\"font-size:18px\">• 引导学生理解定积分的基本应用场景</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_RApw-JXY",
+          "type": "spotlight",
+          "elementId": "text__2HcrFgj"
+        },
+        {
+          "id": "action_nUohaZs8",
+          "type": "speech",
+          "text": "同学们，今天我们要探讨的主题是近似面积的计算。主要是通过速度与时间的变化来引入定积分的概念，以及它在计算一个形状的面积时的应用。"
+        },
+        {
+          "id": "action_hp23z1Z-",
+          "type": "spotlight",
+          "elementId": "text_x2OpLHYm"
+        },
+        {
+          "id": "action_kzLq0HUG",
+          "type": "speech",
+          "text": "首先，我们需要考虑的是，当速度发生变化的时候，我们该如何计算行驶距离。可以想象一下，如果我们以不均匀的速度行驶，如何找到所经过的距离呢？"
+        }
+      ],
+      "createdAt": 1779089027957,
+      "updatedAt": 1779089027957,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_1",
+        "outlineTitle": "近似面积的计算"
+      }
+    },
+    {
+      "id": "scene__Ud2P4FyXp",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "黎曼和的定义",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "mv-O-I4WCzEyqRaAdaQkh",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_67KhkZAK",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>黎曼和的定义</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text__ITLzWkU",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px\">• 左端黎曼和的公式与计算方法</p><p style=\"font-size:18px\">• 右端黎曼和的公式与计算方法</p><p style=\"font-size:18px\">• 了解两者的计算方式及其应用场景</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_6skCV3v9",
+          "type": "spotlight",
+          "elementId": "text_67KhkZAK"
+        },
+        {
+          "id": "action_d33GVh9j",
+          "type": "speech",
+          "text": "今天我们要讨论的是黎曼和的定义，这是一个非常重要的数学概念，常用于从几何角度理解定积分。我们将一起探索左端和右端黎曼和的定义及其计算方法。"
+        },
+        {
+          "id": "action_-Oby9xhF",
+          "type": "spotlight",
+          "elementId": "text__ITLzWkU"
+        },
+        {
+          "id": "action_HC48ijki",
+          "type": "speech",
+          "text": "首先，我们来看左端黎曼和的公式。左端黎曼和是通过将区间划分为若干小区间，然后在每个小区间的左端取函数值，乘以小区间的宽度来计算的。这样的设计能够帮助我们在逼近定积分的时候，逐渐提高精度。"
+        },
+        {
+          "id": "action_G5RmKVsk",
+          "type": "spotlight",
+          "elementId": "text__ITLzWkU"
+        },
+        {
+          "id": "action_FrpB6qx9",
+          "type": "speech",
+          "text": "现在我们转向右端黎曼和的计算。右端黎曼和使用相同的方法，但是不同的是，它在每个小区间的右端取函数值。这样的选择在某些情况下能够更好地对应函数的变化，特别是在单调递增或递减的情况下。"
+        },
+        {
+          "id": "action_eQgUfHRc",
+          "type": "spotlight",
+          "elementId": "text__ITLzWkU"
+        },
+        {
+          "id": "action_L5bhCFf6",
+          "type": "speech",
+          "text": "了解这两者的计算方式非常重要，因为它们各自在不同情境下有不同的应用场景。比如，在处理不规则函数的积分时，我们可能需要同时使用左右黎曼和来判断蜿蜒变化的形态。"
+        },
+        {
+          "id": "action_BFwWXn8B",
+          "type": "spotlight",
+          "elementId": "text__ITLzWkU"
+        },
+        {
+          "id": "action_mpK8kgpd",
+          "type": "speech",
+          "text": "总结一下，判断一个区间的黎曼和时，首先要明确选择左端还是右端。你可以通过观察函数的单调性和连续性来决定哪个更适合你的计算需求。这样你就能更有效地继承这项技术到更复杂的积分问题上。"
+        }
+      ],
+      "createdAt": 1779089040660,
+      "updatedAt": 1779089040660,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_2",
+        "outlineTitle": "黎曼和的定义"
+      }
+    },
+    {
+      "id": "scene_Z0k0XJRtXM",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "黎曼和的性质",
+      "order": 3,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "3CQ_q2pJT5OyoUlqRxzHc",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_mru_TH3Z",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>黎曼和的性质</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_NNNiSXMv",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 152,
+              "content": "<p style=\"font-size:18px\">• 递增函数时左/右黎曼和的高低估情况</p><p style=\"font-size:18px\">• 递减函数时左/右黎曼和的高低估情况</p><p style=\"font-size:18px\">• 通过实例帮助学生建立直观理解</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_pr7lEpT9",
+          "type": "spotlight",
+          "elementId": "text_mru_TH3Z"
+        },
+        {
+          "id": "action_SwXK_Gwq",
+          "type": "speech",
+          "text": "今天我们将探讨黎曼和的性质，重点关注递增和递减函数时，如何使用黎曼和来估算面积。"
+        },
+        {
+          "id": "action_Hd1mf2XM",
+          "type": "spotlight",
+          "elementId": "text_NNNiSXMv"
+        },
+        {
+          "id": "action_4VYmP85o",
+          "type": "speech",
+          "text": "首先，当我们处理递增函数时，左黎曼和与右黎曼和的估计情况是怎么样的呢？我们发现，左黎曼和会低估实际面积，而右黎曼和则会高估。当函数单调递增时，左边的矩形总是比真实的函数值要小，这导致了低估情况。接下来，让我再问问大家，谁能举个例子来帮助我们更好地理解这部分呢？"
+        },
+        {
+          "id": "action_oMbPLl09",
+          "type": "spotlight",
+          "elementId": "text_NNNiSXMv"
+        },
+        {
+          "id": "action_6C5AFZ-Z",
+          "type": "speech",
+          "text": "接下来，我们来看递减函数的情况。与递增函数正好相反，左黎曼和在递减函数的情况下会高估面积，而右黎曼和则会低估。这是因为左侧的矩形总会高于真实的函数值。这个特点是怎样影响我们在实际计算时的选择的呢？"
+        },
+        {
+          "id": "action_y-1XDoMw",
+          "type": "spotlight",
+          "elementId": "text_NNNiSXMv"
+        },
+        {
+          "id": "action_ax0c4iyO",
+          "type": "speech",
+          "text": "为了加深理解，我们可以用实例来直观地展示这些概念。想象一下，我们在分析一个简单的递增函数，比如f(x) 等于 x的平方在区间[1, 3]上的黎曼和，左黎曼和是多少呢？请大家思考一下，通过计算，我们会看到左侧的矩形总是略低于曲线。这种情况对我们估算实际面积有什么影响呢？"
+        },
+        {
+          "id": "action_k3rhYfUN",
+          "type": "spotlight",
+          "elementId": "text_NNNiSXMv"
+        },
+        {
+          "id": "action_sbWNQfoY",
+          "type": "speech",
+          "text": "最后，通过这些观察，我们建立了一个判断方法。对于递增函数，左黎曼和低估，右黎曼和高估。而对于递减函数，情况则完全相反。记住这一点，在今后的应用中，可以帮助我们更好地利用黎曼和进行面积估算。大家还有什么不清楚的地方吗？"
+        }
+      ],
+      "createdAt": 1779089059316,
+      "updatedAt": 1779089059316,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_3",
+        "outlineTitle": "黎曼和的性质"
+      }
+    },
+    {
+      "id": "scene_f8tQ64M6d-",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "定积分的定义",
+      "order": 4,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "3kKoqFp3hRsePu7Vo4unZ",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_uLOMVqcH",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>定积分的定义</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_5fYf2bCq",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 164,
+              "content": "<p style=\"font-size:18px\">• 定积分的数学定义及其符号表示</p><p style=\"font-size:18px\">• 黎曼和与定积分的联系</p><p style=\"font-size:18px\">• 探讨定积分在求面积中的具体应用</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "latex_7rWASs8i",
+              "type": "latex",
+              "left": 60,
+              "top": 330,
+              "width": 880,
+              "height": 100,
+              "latex": "\\int_a^b f(x)dx = \\lim_{n \\to \\infty} \\sum_{i=1}^{n} f(x_i^*) \\Delta x_i",
+              "color": "#000000",
+              "align": "center",
+              "html": "<span class=\"math-engine-display\" data-syntara-math=\"display\" style=\"display:block;text-align:center;margin:0.2em 0;\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:2.511em;vertical-align:-0.9119em;\"></span><span class=\"mop\"><span class=\"mop op-symbol large-op\" style=\"margin-right:0.44445em;position:relative;top:-0.0011em;\">∫</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.599em;\"><span style=\"top:-1.7881em;margin-left:-0.4445em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">a</span></span></span><span style=\"top:-3.8129em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">b</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.9119em;\"><span></span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">x</span><span class=\"mclose\">)</span><span class=\"mord mathnormal\">d</span><span class=\"mord mathnormal\">x</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">=</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:2.9291em;vertical-align:-1.2777em;\"></span><span class=\"mop op-limits\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.6944em;\"><span style=\"top:-2.4em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\">n</span><span class=\"mrel mtight\">→</span><span class=\"mord mtight\">∞</span></span></span></span><span style=\"top:-3em;\"><span class=\"pstrut\" style=\"height:3em;\"></span><span><span class=\"mop\">lim</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.7em;\"><span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mop op-limits\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.6514em;\"><span style=\"top:-1.8723em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\">i</span><span class=\"mrel mtight\">=</span><span class=\"mord mtight\">1</span></span></span></span><span style=\"top:-3.05em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span><span class=\"mop op-symbol large-op\">∑</span></span></span><span style=\"top:-4.3em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\">n</span></span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.2777em;\"><span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mopen\">(</span><span class=\"mord\"><span class=\"mord mathnormal\">x</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.7387em;\"><span style=\"top:-2.453em;margin-left:0em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">i</span></span></span><span style=\"top:-3.113em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mbin mtight\">∗</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.247em;\"><span></span></span></span></span></span></span><span class=\"mclose\">)</span><span class=\"mord\">Δ</span><span class=\"mord\"><span class=\"mord mathnormal\">x</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.3117em;\"><span style=\"top:-2.55em;margin-left:0em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">i</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.15em;\"><span></span></span></span></span></span></span></span></span></span></span></span>",
+              "fixedRatio": true,
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_kAJ23xim",
+          "type": "spotlight",
+          "elementId": "text_uLOMVqcH"
+        },
+        {
+          "id": "action_ywwH1xPJ",
+          "type": "speech",
+          "text": "同学们，今天我们要深入了解定积分的定义。定积分是数学分析中一个非常重要的概念，它不仅仅是一个符号，而是一种通过极限来计算区域面积的工具。首先，我们来看看它的数学定义。"
+        },
+        {
+          "id": "action_UlYwKLNs",
+          "type": "spotlight",
+          "elementId": "latex_7rWASs8i"
+        },
+        {
+          "id": "action_Ku6Hx7Qz",
+          "type": "speech",
+          "text": "定积分的表示方式是这样的： \\[ \\int下标a的b次方 f(x)dx = \\lim下标n \\to 无穷 从i 等于 1到n，对f求和(x下标i^*) \\Delta x \\]\n这里，a 和 b 是积分的下限和上限，f(x) 是被积函数，\\Delta x是子区间的宽度。"
+        },
+        {
+          "id": "action_vmXLwPeJ",
+          "type": "spotlight",
+          "elementId": "text_5fYf2bCq"
+        },
+        {
+          "id": "action_2c3jhZ6i",
+          "type": "speech",
+          "text": "接下来，我们需要讨论的是黎曼和与定积分的联系。黎曼和是通过把区域分割成小块来近似求面积，而当我们将分割变得非常细致时，这种近似就可以转化为定积分。因此，可以说定积分是黎曼和的极限形式。"
+        },
+        {
+          "id": "action_aItn3ctY",
+          "type": "spotlight",
+          "elementId": "text_5fYf2bCq"
+        },
+        {
+          "id": "action_bmtRhHQK",
+          "type": "speech",
+          "text": "最后，定积分在求面积的具体应用也是我们需要掌握的。无论是求曲线下方的面积，还是计算不规则图形的面积，定积分都能帮助我们得出正确的结果。通过掌握这些基本概念，我们就能自信地解决相关的问题。"
+        }
+      ],
+      "createdAt": 1779089078170,
+      "updatedAt": 1779089078170,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_4",
+        "outlineTitle": "定积分的定义"
+      }
+    },
+    {
+      "id": "scene_yY-1R2HXQw",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "定积分的基本性质",
+      "order": 5,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "4Dlk7L1MiIUrkS2eVaM1L",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_JBTSF5hW",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>定积分的基本性质</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_NnXWSMPW",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 113,
+              "content": "<p style=\"font-size:18px\">• 定积分的线性性质与区间性质</p><p style=\"font-size:18px\">• 相同上下限的定积分为零</p><p style=\"font-size:18px\">• 定积分的计算规则</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_TZguL62d",
+          "type": "spotlight",
+          "elementId": "text_JBTSF5hW"
+        },
+        {
+          "id": "action_CIMvSBY-",
+          "type": "speech",
+          "text": "今天我们将探讨定积分的基本性质。定积分是微积分中的一个重要概念，它在许多数学和物理应用中发挥着关键作用。那么，什么是定积分呢？简单来说，它是对某个区间内函数的整体变化量的度量，通常表示为一个数字。"
+        },
+        {
+          "id": "action_DTGEuFB1",
+          "type": "spotlight",
+          "elementId": "text_NnXWSMPW"
+        },
+        {
+          "id": "action_cEzngVdX",
+          "type": "speech",
+          "text": "首先，我们来看定积分的线性性质与区间性质。定积分具有线性性质，这意味着如果将一个函数进行缩放或平移，它的定积分值也会相应地改变。两者的关系可以通过公式 (int下标a的b次方 (cf(x) 加 g(x))dx 等于 cint下标a的b次方 f(x)dx 加 int下标a的b次方 g(x)dx) 来体现。这是我们在实际应用中经常用到的一个重要性质。"
+        },
+        {
+          "id": "action_8j6hK-SS",
+          "type": "spotlight",
+          "elementId": "text_NnXWSMPW"
+        },
+        {
+          "id": "action_9W1eX4mR",
+          "type": "speech",
+          "text": "其次，我们需要知道的是，如果一个函数在相同的上下限区间内进行积分，那么它的定积分值为零。这是因为在这个情况下，面积的正负部分相互抵消。这一性质在处理一些极限或者对称性问题时非常有用，比如计算偶函数或奇函数的定积分时，我们可以很方便地得出结论。"
+        },
+        {
+          "id": "action_NH0W7Yhq",
+          "type": "spotlight",
+          "elementId": "text_NnXWSMPW"
+        },
+        {
+          "id": "action_wErR5C1N",
+          "type": "speech",
+          "text": "最后，我们来看定积分的计算规则。这些规则帮助我们在计算定积分的时候简化操作，比如我们可以通过换元法或分部积分法来求解复杂的定积分。掌握这些计算规则不仅能提高我们的计算效率，还能帮助我们理解积分在不同情况下的表现。现在，请大家思考一下如何将这些性质应用到实际问题中，比如在物理中的运动方程。"
+        },
+        {
+          "id": "action_QOO32s0T",
+          "type": "spotlight",
+          "elementId": "text_JBTSF5hW"
+        },
+        {
+          "id": "action_1uqUwZhD",
+          "type": "speech",
+          "text": "总之，定积分的基本性质使我们能够更好地理解和应用这一工具。我们在解题时，可以通过验证这些性质来判断具体情境下的积分结果。例如，如果遇到一个有相同上下限的定积分，我们立刻就可以知道它的值为零。这是解决很多积分问题的强大工具！"
+        }
+      ],
+      "createdAt": 1779089098288,
+      "updatedAt": 1779089098288,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_5",
+        "outlineTitle": "定积分的基本性质"
+      }
+    },
+    {
+      "id": "scene__PygJW-CrG",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "定积分的计算",
+      "order": 6,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "BHg515s26coDGhzYRqeOW",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_ie-mR38G",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>定积分的计算</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_NTDBNGjy",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 400,
+              "content": "<p style=\"font-size:18px\">• 计算定积分 K f(x) dx 的值，f(x) = x^2，区间为 [0, 2]</p><p style=\"font-size:18px\"><strong>解题思路：</strong></p><p style=\"font-size:18px\">1. 使用基本定积分公式</p><p style=\"font-size:18px\">2. 应用积分上限与下限</p><p style=\"font-size:18px\"><strong>分步讲解：</strong></p><p style=\"font-size:18px\">设定积分为 K _0^2 x^2 dx = \\frac{1}{3} x^3 \\bigg|_0^2</p><p style=\"font-size:18px\">计算得到值为 \\frac{8}{3}.</p><p style=\"font-size:18px\"><strong>易错点：</strong></p><p style=\"font-size:18px\">1. 未正确设置积分限</p><p style=\"font-size:18px\">2. 计算过程中的算术错误</p><p style=\"font-size:18px\"><strong>结论：</strong>定积分的值为 \\frac{8}{3}.</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_BHUYm1hN",
+          "type": "spotlight",
+          "elementId": "text_ie-mR38G"
+        },
+        {
+          "id": "action_9R2Zn0AC",
+          "type": "speech",
+          "text": "今天我们要学习定积分的计算，具体来说，我们会通过一个例题来加深理解。我们要求解的定积分是 K f(x) dx，其中 f(x) 等于 x的平方，区间为 [0, 2]。"
+        },
+        {
+          "id": "action_j9TpZXe2",
+          "type": "spotlight",
+          "elementId": "text_NTDBNGjy"
+        },
+        {
+          "id": "action_U5FiVr4U",
+          "type": "speech",
+          "text": "在解这个定积分之前，我们首先要明确解题思路。我们可以使用基本的定积分公式，并且要应用积分的上限和下限。接下来，我们将具体展开这个例子。"
+        },
+        {
+          "id": "action_QissNe3_",
+          "type": "spotlight",
+          "elementId": "text_NTDBNGjy"
+        },
+        {
+          "id": "action_k_sq5Gbk",
+          "type": "speech",
+          "text": "设定积分为 K下标0的平方 x的平方 dx。这一步非常关键，因为它涉及到我们如何设定积分的界限，即下限是 0，上限是 2。注意，确保积分限的设置是非常重要的。"
+        },
+        {
+          "id": "action_1UstfiM6",
+          "type": "spotlight",
+          "elementId": "text_NTDBNGjy"
+        },
+        {
+          "id": "action_7vCZwrUL",
+          "type": "speech",
+          "text": "接下来，我们利用基本定积分公式来计算积分。根据公式，K下标0的平方 x的平方 dx 等于 1/3 乘以 x的3次方 | _0的平方。我们要在这个表达式中代入上下限，以得到计算结果。"
+        },
+        {
+          "id": "action_6bJyRQqU",
+          "type": "spotlight",
+          "elementId": "text_NTDBNGjy"
+        },
+        {
+          "id": "action_7pm0f-b_",
+          "type": "speech",
+          "text": "最后，我们计算得到的值为 8/3，这就是定积分的最终结果。在进行计算时，要特别小心算术错误和设定积分限的问题。希望大家在今后的计算中用这个方法来判断。"
+        }
+      ],
+      "createdAt": 1779089114337,
+      "updatedAt": 1779089114337,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_6",
+        "outlineTitle": "定积分的计算"
+      }
+    },
+    {
+      "id": "scene_KH7_UULStS",
+      "stageId": "8NY4fWkQuD",
+      "type": "quiz",
+      "title": "定积分知识检查",
+      "order": 7,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "short_answer",
+            "question": "解释定积分的几个基本性质，包括线性性质和可加性。",
+            "commentPrompt": "评分标准: (1) 线性性质的描述 - 40% (2) 可加性的解释 - 40% (3) 表达清晰性 - 20%",
+            "analysis": "一个强有力的回答应该包括定积分的线性性质：如果 $f(x)$ 是可积的，并且 $a, b$ 是常数，则有 $\\int (af(x) + b)dx = a \\int f(x)dx + b\\int dx$。其次，强调可加性：如果函数 $f(x)$ 在区间 $[a, c]$ 上可积，并且分为两个子区间 $[a, b]$ 和 $[b, c]$，则有 $\\int_a^c f(x)dx = \\int_a^b f(x)dx + \\int_b^c f(x)dx$。最后，确保回答条理清晰。注意用词准确，避免模糊描述。",
+            "points": 20,
+            "hasAnswer": false
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "question": "以下哪项是黎曼和的定义方式？（可多选）",
+            "options": [
+              {
+                "value": "A",
+                "label": "将区间分割为子区间"
+              },
+              {
+                "value": "B",
+                "label": "选择区间上的点进行取值"
+              },
+              {
+                "value": "C",
+                "label": "计算每个子区间的宽度"
+              },
+              {
+                "value": "D",
+                "label": "求取所有子区间的和"
+              }
+            ],
+            "answer": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "analysis": "黎曼和的构建需要将区间划分成若干子区间，选择每个子区间中的点（通常是左端点、右端点或中点）进行取值，同时要计算每个子区间的宽度，最后将取到的函数值与对应子区间宽度的乘积求和。这一系列步骤都是定义黎曼和所必须的，因此所有选项均是正确的。",
+            "points": 15,
+            "correctAnswer": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_8qoRzYNG",
+          "type": "speech",
+          "text": "现在我们来检查一下你们对定积分的理解，准备好了吗？"
+        },
+        {
+          "id": "action_p2HO1lJj",
+          "type": "speech",
+          "text": "请仔细阅读每一个问题，确保理解它们的要求。"
+        },
+        {
+          "id": "action_TP22v9W9",
+          "type": "speech",
+          "text": "第一个问题考查的是定积分的基本性质，包括线性性质和可加性。"
+        },
+        {
+          "id": "action_D9FKZKYj",
+          "type": "speech",
+          "text": "在回答时，请注意这些性质是如何运用在具体的例子中的。"
+        },
+        {
+          "id": "action_Q12pj9Jv",
+          "type": "discussion",
+          "topic": "我们刚才讨论的定积分的性质是什么？",
+          "prompt": "你认为哪些地方还需要进一步改进？",
+          "agentId": "default-5"
+        }
+      ],
+      "createdAt": 1779089128632,
+      "updatedAt": 1779089128632,
+      "generationDiagnostics": {
+        "pipeline": "quiz",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_7",
+        "outlineTitle": "定积分知识检查"
+      }
+    },
+    {
+      "id": "scene_qaj2sdw_MI",
+      "stageId": "8NY4fWkQuD",
+      "type": "slide",
+      "title": "课程小结",
+      "order": 8,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "ySBhsf2-Y6cCDpf_GIdNG",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_71vLJrm_",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 76,
+              "content": "<p style=\"font-size:32px\"><strong>课程小结</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_ulXKX9Jz",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px\">• 重申定积分在面积计算中的重要性</p><p style=\"font-size:18px\">• 总结各部分内容的联系与应用</p><p style=\"font-size:18px\">• 引导学生展望下一课的内容</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "latex_wd755zG6",
+              "type": "latex",
+              "left": 60,
+              "top": 300,
+              "width": 880,
+              "height": 80,
+              "latex": "\\int_a^b f(x)dx = F(b) - F(a)",
+              "color": "#000000",
+              "align": "center",
+              "html": "<span class=\"math-engine-display\" data-syntara-math=\"display\" style=\"display:block;text-align:center;margin:0.2em 0;\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"base\"><span class=\"strut\" style=\"height:2.511em;vertical-align:-0.9119em;\"></span><span class=\"mop\"><span class=\"mop op-symbol large-op\" style=\"margin-right:0.44445em;position:relative;top:-0.0011em;\">∫</span><span class=\"msupsub\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.599em;\"><span style=\"top:-1.7881em;margin-left:-0.4445em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">a</span></span></span><span style=\"top:-3.8129em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"sizing reset-size6 size3 mtight\"><span class=\"mord mathnormal mtight\">b</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.9119em;\"><span></span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.10764em;\">f</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">x</span><span class=\"mclose\">)</span><span class=\"mord mathnormal\">d</span><span class=\"mord mathnormal\">x</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">=</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:1em;vertical-align:-0.25em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.13889em;\">F</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">b</span><span class=\"mclose\">)</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span><span class=\"mbin\">−</span><span class=\"mspace\" style=\"margin-right:0.2222em;\"></span></span><span class=\"base\"><span class=\"strut\" style=\"height:1em;vertical-align:-0.25em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.13889em;\">F</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">a</span><span class=\"mclose\">)</span></span></span></span></span></span>",
+              "fixedRatio": true,
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_D4lsCN56",
+          "type": "spotlight",
+          "elementId": "text_71vLJrm_"
+        },
+        {
+          "id": "action_eryU6FWg",
+          "type": "speech",
+          "text": "今天我们将对定积分的学习内容进行一个全面的回顾，帮助大家巩固所学的知识，并为接下来的学习打下坚实的基础。"
+        },
+        {
+          "id": "action_MBXBKEF7",
+          "type": "spotlight",
+          "elementId": "text_ulXKX9Jz"
+        },
+        {
+          "id": "action_MWNIExff",
+          "type": "speech",
+          "text": "首先，我们重申定积分在面积计算中的重要性。定积分能够准确地计算曲线下方的面积，这不仅在理论上有意义，在实际应用中也非常广泛。"
+        }
+      ],
+      "createdAt": 1779089144288,
+      "updatedAt": 1779089144288,
+      "generationDiagnostics": {
+        "pipeline": "legacy",
+        "failureReasons": [],
+        "semanticRetryCount": 0,
+        "layoutRetryCount": 0,
+        "contentFallbackUsed": false,
+        "slideGenerationRoute": "openmaic-legacy",
+        "outlineId": "scene_8",
+        "outlineTitle": "课程小结"
+      }
+    }
+  ],
+  "createdAt": "2026-05-18T07:25:44.297Z"
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSettingsStore } from '@/lib/store/settings';
 
 /**
@@ -8,11 +9,14 @@ import { useSettingsStore } from '@/lib/store/settings';
  * Renders nothing — purely a side-effect component.
  */
 export function ServerProvidersInit() {
+  const pathname = usePathname();
   const fetchServerProviders = useSettingsStore((state) => state.fetchServerProviders);
+  const isLocalMemoryTest = pathname?.startsWith('/test/memory-') === true;
 
   useEffect(() => {
+    if (isLocalMemoryTest) return;
     fetchServerProviders();
-  }, [fetchServerProviders]);
+  }, [fetchServerProviders, isLocalMemoryTest]);
 
   return null;
 }
